@@ -11,8 +11,8 @@ definition is human-readable and version-controlled.
 | Scope | DHS prime contract transactions, action dates 2022-10-01 to 2025-09-30 |
 | Volume | 169,336 transactions · 85,027 awards · 13,522 recipients |
 | Net obligations | **$75.84B** (FY2023 $23.90B · FY2024 $23.60B · FY2025 $28.34B) |
-| Model | Star schema: 1 fact table, 7 dimensions, 33 measures |
-| Status | Semantic model built and reconciled to source; report pages not started |
+| Model | Star schema: 1 fact table, 7 dimensions, 45 measures |
+| Status | Semantic model reconciled to source; Executive Overview page in review, three more pages planned |
 
 ---
 
@@ -144,6 +144,15 @@ All measures live in `_Measures`, grouped into display folders.
 | | **Single-Offer Rate** | Competed awards (A, D, F, CDO) with exactly one offer ÷ competed awards reporting 1+ offers; base actions only |
 | | **Top 10 Recipient Share** | Net obligations of the top 10 parent companies (parent UEI) ÷ net obligations of all recipients in context |
 | | Selected FY Label | "FY2025", "FY2023-FY2025" or "FY2023, FY2025", for dynamic titles |
+| Report | **New Award Obligations** | Net obligations recorded on base award actions in context: the amount obligated when the award was signed, **not** its lifetime, current or potential value |
+| | Continuing Award Obligations | Net obligations recorded on modifications of existing awards (options, funding actions, changes, de-obligations). New + Continuing = Net |
+| | Report Subtitle | Fiscal years in context + "net obligations = binding commitments net of de-obligations, not outlays" |
+| | YoY Label | Card caption: "▲ +20.1% vs FY2024" when one fiscal year with a prior year is selected; otherwise explains why no comparison is shown |
+| | Deob Rate Label | Card caption: "9.3% de-obligation rate" for the period in context |
+| | New Award Obligations Label | Card caption: "$34.14B on new awards" for the period in context (same $B format as the report) |
+| | Net Obligations Color | Blue (#2A6BC2) when net ≥ 0, rust (#C8553D) when negative; used for sign-aware bar colors |
+| | Data Source Label | Footer: source, extract date and the obligations-vs-outlays caveat |
+| Report › Display ($B) | Net / Gross / Deobligations / New Award Obligations **($B)** | Display-only numeric measures: the base measure ÷ 1,000,000,000, formatted `$23.90B` (negatives `($1.79B)`). Used for cards, tables and chart labels so every amount on the report reads in billions with two decimals; calculations stay on the base measures |
 | Data Quality | DQ … | Duplicate keys, orphan keys, New Awards definition checks, unknown-member shares, de-obligation rows, date range |
 
 ### KPI definitions and their limits
@@ -183,6 +192,18 @@ Reference values computed independently from the raw USAspending CSV.
 Other expected values: Awards 85,027 · Recipients 13,522 · DQ measures 0 · Unknown NAICS 0.38% ·
 Unknown PSC 0.29% · action dates 2022-10-01 to 2025-09-30. Small Business Share 37.4%, Competed Share 88.5%,
 Set-Aside Share 14.4%.
+
+New vs. continuing obligations (they always sum to Net Obligations):
+
+| Fiscal year | New Award Obligations | Continuing Award Obligations |
+|---|---|---|
+| FY2023 | $10,905,392,124.24 | $12,992,607,654.61 |
+| FY2024 | $9,270,015,799.10 | $14,334,354,676.70 |
+| FY2025 | $13,966,982,514.43 | $14,370,170,502.93 |
+| **Total** | **$34,142,390,437.77** | **$41,697,132,834.24** |
+
+For comparison, the same base awards' lifetime *current* value is $45.93B and their *potential* value
+(all options) is $81.73B. Those award-level values are deliberately not used.
 
 To check a refreshed model, run in **DAX query view**:
 

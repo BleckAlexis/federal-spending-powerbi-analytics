@@ -252,7 +252,7 @@ table _Measures
 			        TRUE (),
 			        FYCount = 1, "FY" & MinFY,
 			        MaxFY - MinFY + 1 = FYCount, "FY" & MinFY & "-FY" & MaxFY,
-			        CONCATENATEX ( VALUES ( DimDate[Fiscal Year] ), DimDate[Fiscal Year], ", ", DimDate[Fiscal Year Number], ASC )
+			        CONCATENATEX ( VALUES ( DimDate[Fiscal Year Number] ), "FY" & DimDate[Fiscal Year Number], ", ", DimDate[Fiscal Year Number], ASC )
 			    )
 		displayFolder: KPIs
 		lineageTag: 0a4c1e6f-3a5b-4c29-ba1d-4a5b6c7d8e78
@@ -279,6 +279,97 @@ table _Measures
 		formatString: #,0
 		displayFolder: Data Quality
 		lineageTag: 4e8a5c0d-7e9f-4a6d-ae51-8e9f0a1b2c80
+
+	/// Net obligations recorded on qualifying base award actions (Is Base Action = TRUE) in context: the obligation booked
+	/// when the award was signed. NOT the award's lifetime, current or potential value. New + Continuing = Net Obligations.
+	measure 'New Award Obligations' =
+			CALCULATE (
+			    [Net Obligations],
+			    FactContractTransactions[Is Base Action] = TRUE ()
+			)
+		formatString: \$#,0;(\$#,0);\$#,0
+		displayFolder: Report
+		lineageTag: 5d1b7e3a-2c4f-4a8e-9b61-7e3a2c4f5a81
+
+	/// Net obligations recorded on modifications of existing awards (options, funding actions, changes, close-outs, de-obligations).
+	measure 'Continuing Award Obligations' =
+			CALCULATE (
+			    [Net Obligations],
+			    FactContractTransactions[Is Base Action] = FALSE ()
+			)
+		formatString: \$#,0;(\$#,0);\$#,0
+		displayFolder: Report
+		lineageTag: 6e2c8f4b-3d5a-4b9f-8c72-8f4b3d5a6b82
+
+	/// Report subtitle: fiscal years in context plus the obligations-vs-outlays definition shown on every page.
+	measure 'Report Subtitle' = [Selected FY Label] & "  ·  Net obligations = binding commitments net of de-obligations, not outlays (payments)"
+		displayFolder: Report
+		lineageTag: 7f3d9a5c-4e6b-4ca0-9d83-9a5c4e6b7c83
+
+	/// Card caption for Net Obligations YoY %. Shows a comparison only when exactly one fiscal year with a prior year in the dataset is in context.
+	measure 'YoY Label' =
+			VAR Pct = [Net Obligations YoY %]
+			VAR FY = MAX ( DimDate[Fiscal Year Number] )
+			RETURN
+			    SWITCH (
+			        TRUE (),
+			        NOT HASONEVALUE ( DimDate[Fiscal Year Number] ), "Select one fiscal year to compare",
+			        ISBLANK ( Pct ), "No prior fiscal year in dataset",
+			        IF ( Pct >= 0, "▲ +", "▼ " ) & FORMAT ( Pct, "0.0%" ) & " vs FY" & ( FY - 1 )
+			    )
+		displayFolder: Report
+		lineageTag: 8a4e0b6d-5f7c-4db1-ae94-0b6d5f7c8d84
+
+	/// Card caption for Deobligations: de-obligation rate for the period in context, e.g. "9.3% de-obligation rate".
+	measure 'Deob Rate Label' =
+			VAR Rate = [Deobligation Rate]
+			RETURN
+			    IF ( NOT ISBLANK ( Rate ), FORMAT ( Rate, "0.0%" ) & " de-obligation rate" )
+		displayFolder: Report
+		lineageTag: 9b5f1c7e-6a8d-4ec2-bfa5-1c7e6a8d9e85
+
+	/// Conditional-formatting color for Net Obligations: blue when >= 0, rust when negative (sign preserved).
+	measure 'Net Obligations Color' = IF ( [Net Obligations] < 0, "#C8553D", "#2A6BC2" )
+		displayFolder: Report
+		lineageTag: ac602d8f-7b9e-4fd3-80b6-2d8f7b9eaf86
+
+	/// Footer text: data source, extract date and the obligations-vs-outlays caveat.
+	measure 'Data Source Label' = "Source: USAspending.gov · DHS prime contract transactions, FY2023–FY2025 · extract downloaded 2026-10-09 · Obligations are legal commitments to pay; they are not expenditures (outlays)."
+		displayFolder: Report
+		lineageTag: bd713e90-8caf-4ae4-91c7-3e908cafb087
+
+	/// Display-only: Net Obligations in billions of dollars (numeric; value / 1,000,000,000). Shown as $23.90B, negatives as ($1.79B).
+	/// Use for cards, tables and chart labels; calculations and sorting logic stay on Net Obligations.
+	measure 'Net Obligations ($B)' = DIVIDE ( [Net Obligations], 1000000000 )
+		formatString: \$#,0.00\B;(\$#,0.00\B);\$#,0.00\B
+		displayFolder: Report\Display ($B)
+		lineageTag: c1824fa1-9dbe-4bf5-a2c7-4fa19dbe5c91
+
+	/// Display-only: Gross Obligations in billions of dollars (numeric).
+	measure 'Gross Obligations ($B)' = DIVIDE ( [Gross Obligations], 1000000000 )
+		formatString: \$#,0.00\B;(\$#,0.00\B);\$#,0.00\B
+		displayFolder: Report\Display ($B)
+		lineageTag: d2935ab2-aeac-4c06-b3e9-5ab2aeacd692
+
+	/// Display-only: Deobligations in billions of dollars (numeric, keeps the negative sign; shown in parentheses).
+	measure 'Deobligations ($B)' = DIVIDE ( [Deobligations], 1000000000 )
+		formatString: \$#,0.00\B;(\$#,0.00\B);\$#,0.00\B
+		displayFolder: Report\Display ($B)
+		lineageTag: e3a46bc3-bfbd-4d17-84a5-6bc3bfbde793
+
+	/// Display-only: New Award Obligations (obligations on base award actions) in billions of dollars (numeric).
+	measure 'New Award Obligations ($B)' = DIVIDE ( [New Award Obligations], 1000000000 )
+		formatString: \$#,0.00\B;(\$#,0.00\B);\$#,0.00\B
+		displayFolder: Report\Display ($B)
+		lineageTag: f4b57cd4-c0bd-4e28-95a3-7cd4c0bdf894
+
+	/// Card caption for New Awards: obligations on new base awards in context, e.g. "$34.14B on new awards" (same $B format as the report).
+	measure 'New Award Obligations Label' =
+			VAR Amt = [New Award Obligations ($B)]
+			RETURN
+			    IF ( NOT ISBLANK ( Amt ), FORMAT ( Amt, "\$#,0.00\B;(\$#,0.00\B)" ) & " on new awards" )
+		displayFolder: Report
+		lineageTag: a5c68de5-d1ce-4f39-a6b4-8de5d1cef0a5
 
 	column Placeholder
 		dataType: string

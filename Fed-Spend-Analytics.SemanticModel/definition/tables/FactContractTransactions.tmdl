@@ -1,0 +1,219 @@
+/// Grain: one row per contract transaction (action). DHS prime contract transactions FY2023-FY2025 from USAspending.gov.
+table FactContractTransactions
+	lineageTag: aa2ed6ef-841a-4a33-8a5f-74f8891c9a5a
+
+	/// USAspending contract_transaction_unique_key; primary key (one row per contract action).
+	column 'Transaction Key'
+		dataType: string
+		isHidden
+		lineageTag: 7e466cca-6623-4a1a-a712-579df889d4d4
+		summarizeBy: none
+		sourceColumn: contract_transaction_unique_key
+
+		annotation SummarizationSetBy = Automatic
+
+	/// USAspending contract_award_unique_key; used to count distinct awards.
+	column 'Award Key'
+		dataType: string
+		isHidden
+		lineageTag: 10db4c94-118d-4a83-a84a-185a51b96568
+		summarizeBy: none
+		sourceColumn: contract_award_unique_key
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Award ID (PIID)'
+		dataType: string
+		lineageTag: 7168f986-913b-48a3-b662-58fc7115276b
+		summarizeBy: none
+		sourceColumn: award_id_piid
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Modification Number'
+		dataType: string
+		lineageTag: 4d2b6f8e-773a-4734-9ad1-f6592728930f
+		summarizeBy: none
+		sourceColumn: modification_number
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Parent Award ID (PIID)'
+		dataType: string
+		lineageTag: eb07938e-10ea-42d4-b39a-106a7325c7b0
+		summarizeBy: none
+		sourceColumn: parent_award_id_piid
+
+		annotation SummarizationSetBy = Automatic
+
+	/// Obligation for this action. Negative values are de-obligations and are kept as-is. Use the Net Obligations measure.
+	column 'Federal Action Obligation'
+		dataType: decimal
+		isHidden
+		formatString: \$#,0.00;(\$#,0.00);\$#,0.00
+		lineageTag: 971446be-df28-47a9-85f6-d0e06719228c
+		summarizeBy: sum
+		sourceColumn: federal_action_obligation
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Action Date'
+		dataType: dateTime
+		isHidden
+		formatString: Short Date
+		lineageTag: 0261b3c0-40e2-4c5e-8b69-b54e683323f7
+		summarizeBy: none
+		sourceColumn: action_date
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column 'Period of Performance Start'
+		dataType: dateTime
+		formatString: Short Date
+		lineageTag: b834172f-de1d-4638-abd6-dc535dfb10ec
+		summarizeBy: none
+		sourceColumn: period_of_performance_start_date
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column 'Period of Performance End'
+		dataType: dateTime
+		formatString: Short Date
+		lineageTag: ae106a78-53dc-446e-b275-66ffa4bf92be
+		summarizeBy: none
+		sourceColumn: period_of_performance_current_end_date
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column 'Last Modified Date'
+		dataType: dateTime
+		formatString: Short Date
+		lineageTag: 6a02c674-a142-43f6-bb4c-f56025d0e5e7
+		summarizeBy: none
+		sourceColumn: last_modified_date
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column 'Offers Received'
+		dataType: int64
+		formatString: 0
+		lineageTag: fd0c6891-2537-4035-b6e0-2d7e34c29f36
+		summarizeBy: none
+		sourceColumn: number_of_offers_received
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Transaction Description'
+		dataType: string
+		lineageTag: 9945d25f-7bdf-4855-a4f8-aeb2b79e607c
+		summarizeBy: none
+		sourceColumn: transaction_description
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'USAspending Link'
+		dataType: string
+		lineageTag: 25446135-60e1-44ad-af3e-6057d5265a22
+		dataCategory: WebUrl
+		summarizeBy: none
+		sourceColumn: usaspending_permalink
+
+		annotation SummarizationSetBy = Automatic
+
+	/// Surrogate text key built in stg_ContractTransactions (trimmed, upper-cased, UNKNOWN when blank).
+	column AgencyKey
+		dataType: string
+		isHidden
+		lineageTag: 6f99bd8e-244f-4d05-a815-2a8d330068f2
+		summarizeBy: none
+		sourceColumn: AgencyKey
+
+		annotation SummarizationSetBy = Automatic
+
+	/// Surrogate text key built in stg_ContractTransactions (trimmed, upper-cased, UNKNOWN when blank).
+	column RecipientKey
+		dataType: string
+		isHidden
+		lineageTag: cf408fea-1ca5-4279-b1c1-c998ab9e69aa
+		summarizeBy: none
+		sourceColumn: RecipientKey
+
+		annotation SummarizationSetBy = Automatic
+
+	/// Surrogate text key built in stg_ContractTransactions (trimmed, upper-cased, UNKNOWN when blank).
+	column NAICSKey
+		dataType: string
+		isHidden
+		lineageTag: ef0f8182-f8b4-4f80-a27b-5dce6abcfce2
+		summarizeBy: none
+		sourceColumn: NAICSKey
+
+		annotation SummarizationSetBy = Automatic
+
+	/// Surrogate text key built in stg_ContractTransactions (trimmed, upper-cased, UNKNOWN when blank).
+	column PSCKey
+		dataType: string
+		isHidden
+		lineageTag: 425b1f1c-5d96-4aa7-94fb-cb7bcd9b1ba5
+		summarizeBy: none
+		sourceColumn: PSCKey
+
+		annotation SummarizationSetBy = Automatic
+
+	/// Surrogate text key built in stg_ContractTransactions (trimmed, upper-cased, UNKNOWN when blank).
+	column PlaceKey
+		dataType: string
+		isHidden
+		lineageTag: 4f8aa07c-2519-4a42-aede-dad38c7d2ec1
+		summarizeBy: none
+		sourceColumn: PlaceKey
+
+		annotation SummarizationSetBy = Automatic
+
+	/// Surrogate text key built in stg_ContractTransactions (trimmed, upper-cased, UNKNOWN when blank).
+	column ContractTypeKey
+		dataType: string
+		isHidden
+		lineageTag: 5241612f-1efd-4658-b0c3-24ebac929cd4
+		summarizeBy: none
+		sourceColumn: ContractTypeKey
+
+		annotation SummarizationSetBy = Automatic
+
+	/// TRUE for the base award action: modification number made only of zeros (DHS reports "0").
+	/// Validated against the source: one base action per award, transaction_number 0, blank action type,
+	/// never preceded by a modification. Awards whose base action predates FY2023 have no base row here.
+	column 'Is Base Action'
+		dataType: boolean
+		isHidden
+		lineageTag: 0d6f1f3e-8f0e-4f53-9a77-3b1c6a2e5d41
+		summarizeBy: none
+		sourceColumn: is_base_action
+
+		annotation SummarizationSetBy = Automatic
+
+	partition FactContractTransactions = m
+		mode: import
+		source =
+				let
+				    Source = stg_ContractTransactions,
+				    Fact = Table.SelectColumns(Source, {"contract_transaction_unique_key", "contract_award_unique_key", "award_id_piid", "modification_number", "parent_award_id_piid", "federal_action_obligation", "action_date", "period_of_performance_start_date", "period_of_performance_current_end_date", "last_modified_date", "number_of_offers_received", "transaction_description", "AgencyKey", "RecipientKey", "NAICSKey", "PSCKey", "PlaceKey", "ContractTypeKey"}),
+				    // Permalink is not stored in the extract; it is always this URL + the award key
+				    AddPermalink = Table.AddColumn(Fact, "usaspending_permalink", each "https://www.usaspending.gov/award/" & [contract_award_unique_key] & "/", type text),
+				    // Base award action = modification number consisting only of zeros ("0", "00", ...)
+				    AddBaseFlag = Table.AddColumn(AddPermalink, "is_base_action", each
+				        let m = if [modification_number] = null then "" else Text.Trim([modification_number])
+				        in m <> "" and Text.Remove(m, "0") = "", type logical)
+				in
+				    AddBaseFlag
+
+	annotation PBI_ResultType = Table
+

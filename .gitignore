@@ -17,6 +17,7 @@ data/processed/
 *.csv
 *.csv.gz
 *.zip
+*.parquet
 # Allow small, curated sample files for reviewers, if added later
 !data/sample/
 !data/sample/*.csv
@@ -42,6 +43,10 @@ credentials*.json
 logs/
 tmp/
 temp/
+
+# ---- Local notes (e.g. expiring USAspending download links) --
+fed-spend*.txt
+notes/
 
 # ---- OS / editor clutter ------------------------------------
 Thumbs.db

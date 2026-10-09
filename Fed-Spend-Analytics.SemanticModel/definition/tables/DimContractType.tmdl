@@ -1,0 +1,166 @@
+/// Junk dimension: each distinct combination of award type, pricing, competition, set-aside, business size and action type.
+table DimContractType
+	lineageTag: 1617ed72-ca74-45bd-8558-b3fb323f3776
+
+	/// Surrogate text key built in stg_ContractTransactions (trimmed, upper-cased, UNKNOWN when blank).
+	column ContractTypeKey
+		dataType: string
+		isHidden
+		isKey
+		lineageTag: 8ce77748-8b94-4efd-b9fa-d4c833b4c38b
+		summarizeBy: none
+		sourceColumn: ContractTypeKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Award Type Code'
+		dataType: string
+		lineageTag: 9fad87f0-328c-4efc-84a5-0bffd59d9d84
+		summarizeBy: none
+		sourceColumn: Award Type Code
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Award Type'
+		dataType: string
+		lineageTag: 7cd63259-8c95-4aae-813f-00390b8034a7
+		summarizeBy: none
+		sourceColumn: Award Type
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Pricing Code'
+		dataType: string
+		lineageTag: 7d9ae9bd-2ce7-49ab-93d0-275f1e5d9e77
+		summarizeBy: none
+		sourceColumn: Pricing Code
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Contract Pricing'
+		dataType: string
+		lineageTag: a1199dbd-6c3e-40e1-97b7-f946c1fca442
+		summarizeBy: none
+		sourceColumn: Contract Pricing
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Extent Competed Code'
+		dataType: string
+		lineageTag: 04f1641b-da48-4113-a6d6-0d8997bbf5fe
+		summarizeBy: none
+		sourceColumn: Extent Competed Code
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Extent Competed'
+		dataType: string
+		lineageTag: 13cdf8a0-090b-41db-ba07-15efb9340df4
+		summarizeBy: none
+		sourceColumn: Extent Competed
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Set-Aside Code'
+		dataType: string
+		lineageTag: 8286d585-bbcf-49b8-9e12-9b9fcc76bd1e
+		summarizeBy: none
+		sourceColumn: Set-Aside Code
+
+		annotation SummarizationSetBy = Automatic
+
+	column Set-Aside
+		dataType: string
+		lineageTag: 19aef54d-b371-4a7c-9f83-4d1d2707a5cd
+		summarizeBy: none
+		sourceColumn: Set-Aside
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Business Size Code'
+		dataType: string
+		lineageTag: 7eedc426-5b49-4580-8d9b-60fe6634481f
+		summarizeBy: none
+		sourceColumn: Business Size Code
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Business Size'
+		dataType: string
+		lineageTag: 40f7b1da-8c64-4cf1-8982-b151db1a7eca
+		summarizeBy: none
+		sourceColumn: Business Size
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Action Type Code'
+		dataType: string
+		lineageTag: faa9e8fd-eb71-400e-bdd2-0812f5087333
+		summarizeBy: none
+		sourceColumn: Action Type Code
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Action Type'
+		dataType: string
+		lineageTag: 7d617286-74e6-40ce-9eeb-537c5993d423
+		summarizeBy: none
+		sourceColumn: Action Type
+
+		annotation SummarizationSetBy = Automatic
+
+	/// Competed = extent competed A, D, F or CDO.
+	column 'Competition Status'
+		dataType: string
+		lineageTag: 2281d205-5885-4e23-ad19-e8762f64fa85
+		summarizeBy: none
+		sourceColumn: Competition Status
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Set-Aside Status'
+		dataType: string
+		lineageTag: b46123c3-994f-4c43-96c5-eb98ab4c72d1
+		summarizeBy: none
+		sourceColumn: Set-Aside Status
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Small Business Flag'
+		dataType: string
+		lineageTag: 25bf1558-9fbb-4271-a06b-6335cb40c072
+		summarizeBy: none
+		sourceColumn: Small Business Flag
+
+		annotation SummarizationSetBy = Automatic
+
+	partition DimContractType = m
+		mode: import
+		source =
+				let
+				    Source = stg_ContractTransactions,
+				    Base = fnLatestByKey(Source, "ContractTypeKey",
+				        {"award_type_code", "award_type", "type_of_contract_pricing_code", "type_of_contract_pricing", "extent_competed_code", "extent_competed", "type_of_set_aside_code", "type_of_set_aside", "contracting_officers_determination_of_business_size_code", "contracting_officers_determination_of_business_size", "action_type_code", "action_type"},
+				        {"Award Type Code", "Award Type", "Pricing Code", "Contract Pricing", "Extent Competed Code", "Extent Competed", "Set-Aside Code", "Set-Aside", "Business Size Code", "Business Size", "Action Type Code", "Action Type"},
+				        {"", "Unknown", "", "Unknown", "", "Unknown", "", "Unknown", "", "Unknown", "", "Unknown"}),
+				    // Blank action type = modification 0 (verified in source: 57,276 of 57,276 rows)
+				    Labels = Table.FromRecords(Table.TransformRows(Base, each _ & [
+				        #"Action Type" = if _[#"Action Type Code"] = "" and _[ContractTypeKey] <> "UNKNOWN" then "BASE AWARD" else _[#"Action Type"],
+				        #"Contract Pricing" = if _[#"Contract Pricing"] = "" then "NOT REPORTED" else _[#"Contract Pricing"],
+				        #"Extent Competed" = if _[#"Extent Competed"] = "" then "NOT REPORTED" else _[#"Extent Competed"],
+				        #"Set-Aside" = if _[#"Set-Aside"] = "" then "NOT REPORTED" else _[#"Set-Aside"],
+				        #"Business Size" = if _[#"Business Size"] = "" then "NOT REPORTED" else _[#"Business Size"]
+				    ])),
+				    Typed = Table.TransformColumnTypes(Labels, List.Transform(Table.ColumnNames(Labels), each {_, type text})),
+				    AddCompetition = Table.AddColumn(Typed, "Competition Status", each
+				        if List.Contains({"A", "D", "F", "CDO"}, [Extent Competed Code]) then "Competed"
+				        else if [Extent Competed Code] = "" then "Not Reported" else "Not Competed", type text),
+				    AddSetAside = Table.AddColumn(AddCompetition, "Set-Aside Status", each
+				        if [#"Set-Aside Code"] = "" then "Not Reported" else if [#"Set-Aside Code"] = "NONE" then "No Set-Aside" else "Set-Aside", type text),
+				    AddSmallBusiness = Table.AddColumn(AddSetAside, "Small Business Flag", each
+				        if [Business Size Code] = "S" then "Small Business" else if [Business Size Code] = "O" then "Other Than Small" else "Not Reported", type text)
+				in
+				    AddSmallBusiness
+
+	annotation PBI_ResultType = Table
+

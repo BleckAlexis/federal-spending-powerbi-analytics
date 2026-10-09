@@ -1,0 +1,89 @@
+/// Primary place of performance at country + state grain. Key = country code | state code.
+table DimPlaceOfPerformance
+	lineageTag: 54bef804-b1a9-45bf-8d7b-78b8faf74c2b
+
+	/// Surrogate text key built in stg_ContractTransactions (trimmed, upper-cased, UNKNOWN when blank).
+	column PlaceKey
+		dataType: string
+		isHidden
+		isKey
+		lineageTag: ff6016eb-4791-46fd-a86e-5fa83e793f94
+		summarizeBy: none
+		sourceColumn: PlaceKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Country Code'
+		dataType: string
+		lineageTag: 273ff2ec-7617-4bdb-874a-5abfeadf3a43
+		summarizeBy: none
+		sourceColumn: Country Code
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Country Name'
+		dataType: string
+		lineageTag: 3f246545-756f-47e8-9478-efd3134902bc
+		dataCategory: Country
+		summarizeBy: none
+		sourceColumn: Country Name
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'State Code'
+		dataType: string
+		lineageTag: c14d1b29-5971-41e4-8bed-fcac44428ff7
+		dataCategory: StateOrProvince
+		summarizeBy: none
+		sourceColumn: State Code
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'State Name'
+		dataType: string
+		lineageTag: 23c1763d-265a-41b8-90da-dd30018913a2
+		dataCategory: StateOrProvince
+		summarizeBy: none
+		sourceColumn: State Name
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Location Type'
+		dataType: string
+		lineageTag: b0baf467-1923-4061-a80d-d9e1dfa1c49c
+		summarizeBy: none
+		sourceColumn: Location Type
+
+		annotation SummarizationSetBy = Automatic
+
+	hierarchy 'Location Hierarchy'
+		lineageTag: ec5d0c6d-f537-4373-b3d7-3b444a42e770
+
+		level 'Location Type'
+			lineageTag: e8dd7358-9365-4ba8-9707-6416c38e65b4
+			column: 'Location Type'
+
+		level Country
+			lineageTag: 5bd5ac46-18db-4709-b38d-317427f202ae
+			column: 'Country Name'
+
+		level State
+			lineageTag: 899f8cfa-617f-4a05-8e3c-9863d026a7aa
+			column: 'State Name'
+
+	partition DimPlaceOfPerformance = m
+		mode: import
+		source =
+				let
+				    Source = stg_ContractTransactions,
+				    Base = fnLatestByKey(Source, "PlaceKey",
+				        {"primary_place_of_performance_country_code", "primary_place_of_performance_country_name", "primary_place_of_performance_state_code", "primary_place_of_performance_state_name"},
+				        {"Country Code", "Country Name", "State Code", "State Name"},
+				        {"", "Unknown", "", "Unknown"}),
+				    ForeignState = Table.ReplaceValue(Base, each [State Name], each if [Country Code] <> "USA" and [Country Code] <> "" and [State Name] = "" then "N/A - Foreign" else [State Name], Replacer.ReplaceValue, {"State Name"}),
+				    AddLocationType = Table.AddColumn(ForeignState, "Location Type", each if [Country Code] = "USA" then "Domestic" else if [Country Code] = "" then "Unknown" else "Foreign", type text)
+				in
+				    AddLocationType
+
+	annotation PBI_ResultType = Table
+

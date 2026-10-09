@@ -1,0 +1,107 @@
+/// Industry classification (NAICS). Description is the latest reported for each code.
+table DimNAICS
+	lineageTag: c26ea76d-d199-49a2-8eeb-ef2ce106d6e6
+
+	/// Surrogate text key built in stg_ContractTransactions (trimmed, upper-cased, UNKNOWN when blank).
+	column NAICSKey
+		dataType: string
+		isHidden
+		isKey
+		lineageTag: eec368dc-d0c0-4e46-a5b3-03aa97c22644
+		summarizeBy: none
+		sourceColumn: NAICSKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'NAICS Code'
+		dataType: string
+		lineageTag: 78270e8a-8431-4c35-9681-20fd9b689367
+		summarizeBy: none
+		sourceColumn: NAICS Code
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'NAICS Description'
+		dataType: string
+		lineageTag: 8dde1a0d-6fc4-4877-920f-56f396aa0d2f
+		summarizeBy: none
+		sourceColumn: NAICS Description
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'NAICS Label'
+		dataType: string
+		lineageTag: 2b279e0c-5194-4498-813f-7a378bb34f38
+		summarizeBy: none
+		sourceColumn: NAICS Label
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Sector Code'
+		dataType: string
+		lineageTag: 930b6593-4098-4159-a6dd-9ef71abd154d
+		summarizeBy: none
+		sourceColumn: Sector Code
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Sector Name'
+		dataType: string
+		lineageTag: 97d9a2d5-ae15-4581-948f-60610a170a23
+		summarizeBy: none
+		sourceColumn: Sector Name
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Subsector Code'
+		dataType: string
+		lineageTag: c449a6fc-1816-4a2c-83cf-182acab02dc9
+		summarizeBy: none
+		sourceColumn: Subsector Code
+
+		annotation SummarizationSetBy = Automatic
+
+	hierarchy 'NAICS Hierarchy'
+		lineageTag: 9d6a55a2-4ccc-4210-9cb4-991f61ca29a0
+
+		level Sector
+			lineageTag: a7904c97-6b97-43c0-8724-b541407a1e3b
+			column: 'Sector Name'
+
+		level NAICS
+			lineageTag: 87e4885f-0576-4e30-aec0-d4823f5970e7
+			column: 'NAICS Label'
+
+	partition DimNAICS = m
+		mode: import
+		source =
+				let
+				    Source = stg_ContractTransactions,
+				    Base = fnLatestByKey(Source, "NAICSKey",
+				        {"naics_code", "naics_description"},
+				        {"NAICS Code", "NAICS Description"},
+				        {"", "Unknown"}),
+				    SectorNames = [
+				        #"11" = "Agriculture, Forestry, Fishing and Hunting", #"21" = "Mining, Quarrying, and Oil and Gas Extraction",
+				        #"22" = "Utilities", #"23" = "Construction", #"31-33" = "Manufacturing", #"42" = "Wholesale Trade",
+				        #"44-45" = "Retail Trade", #"48-49" = "Transportation and Warehousing", #"51" = "Information",
+				        #"52" = "Finance and Insurance", #"53" = "Real Estate and Rental and Leasing",
+				        #"54" = "Professional, Scientific, and Technical Services", #"55" = "Management of Companies and Enterprises",
+				        #"56" = "Administrative and Support and Waste Management and Remediation Services",
+				        #"61" = "Educational Services", #"62" = "Health Care and Social Assistance",
+				        #"71" = "Arts, Entertainment, and Recreation", #"72" = "Accommodation and Food Services",
+				        #"81" = "Other Services (except Public Administration)", #"92" = "Public Administration"
+				    ],
+				    SectorOf = (code as text) as text =>
+				        let s = Text.Start(code, 2) in
+				        if code = "" then "" else if List.Contains({"31", "32", "33"}, s) then "31-33"
+				        else if List.Contains({"44", "45"}, s) then "44-45" else if List.Contains({"48", "49"}, s) then "48-49" else s,
+				    AddLabel = Table.AddColumn(Base, "NAICS Label", each if [NAICS Code] = "" then "Unknown" else [NAICS Code] & " - " & [NAICS Description], type text),
+				    AddSector = Table.AddColumn(AddLabel, "Sector Code", each SectorOf([NAICS Code]), type text),
+				    AddSectorName = Table.AddColumn(AddSector, "Sector Name", each Record.FieldOrDefault(SectorNames, [Sector Code], "Unknown"), type text),
+				    AddSubsector = Table.AddColumn(AddSectorName, "Subsector Code", each Text.Start([NAICS Code], 3), type text)
+				in
+				    AddSubsector
+
+	annotation PBI_ResultType = Table
+

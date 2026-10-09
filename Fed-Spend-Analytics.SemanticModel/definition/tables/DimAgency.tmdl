@@ -1,0 +1,92 @@
+/// Awarding agency at office grain. Key = sub-agency code | office code.
+table DimAgency
+	lineageTag: 556bb6fa-3dcb-47cc-9b35-6e5cc8a87d7c
+
+	/// Surrogate text key built in stg_ContractTransactions (trimmed, upper-cased, UNKNOWN when blank).
+	column AgencyKey
+		dataType: string
+		isHidden
+		isKey
+		lineageTag: ef3eb9a3-147c-422a-8ffb-a5b55642b98c
+		summarizeBy: none
+		sourceColumn: AgencyKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Agency Code'
+		dataType: string
+		lineageTag: 7e2f2f2e-b7da-46e2-91c4-833f7ae0ac31
+		summarizeBy: none
+		sourceColumn: Agency Code
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Agency Name'
+		dataType: string
+		lineageTag: 019138e6-18b9-4fc5-8db4-fd4d632b8bac
+		summarizeBy: none
+		sourceColumn: Agency Name
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Sub-Agency Code'
+		dataType: string
+		lineageTag: c761faf4-a6f0-45c6-bd6f-96828ce5dd65
+		summarizeBy: none
+		sourceColumn: Sub-Agency Code
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Sub-Agency Name'
+		dataType: string
+		lineageTag: 69e5ecd6-91ee-4592-a905-c14cc50d2dc6
+		summarizeBy: none
+		sourceColumn: Sub-Agency Name
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Office Code'
+		dataType: string
+		lineageTag: 84e67253-4103-4e80-9c15-20f8ca33d4c3
+		summarizeBy: none
+		sourceColumn: Office Code
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Office Name'
+		dataType: string
+		lineageTag: 2c809366-fc14-481e-a901-cdf3ffcfa8b1
+		summarizeBy: none
+		sourceColumn: Office Name
+
+		annotation SummarizationSetBy = Automatic
+
+	hierarchy 'Agency Hierarchy'
+		lineageTag: 8c5c372c-192e-404f-886f-3751b8906678
+
+		level Agency
+			lineageTag: fff08370-dace-4c0b-a4d4-569d28d89c04
+			column: 'Agency Name'
+
+		level Sub-Agency
+			lineageTag: d4b6f640-e529-46c7-a8d3-a56dcc2a8e9b
+			column: 'Sub-Agency Name'
+
+		level Office
+			lineageTag: 4b03c8e5-ece3-42e7-a89e-4d56c4211ce5
+			column: 'Office Name'
+
+	partition DimAgency = m
+		mode: import
+		source =
+				let
+				    Source = stg_ContractTransactions,
+				    Base = fnLatestByKey(Source, "AgencyKey",
+				        {"awarding_agency_code", "awarding_agency_name", "awarding_sub_agency_code", "awarding_sub_agency_name", "awarding_office_code", "awarding_office_name"},
+				        {"Agency Code", "Agency Name", "Sub-Agency Code", "Sub-Agency Name", "Office Code", "Office Name"},
+				        {"", "Unknown", "", "Unknown", "", "Unknown"})
+				in
+				    Base
+
+	annotation PBI_ResultType = Table
+

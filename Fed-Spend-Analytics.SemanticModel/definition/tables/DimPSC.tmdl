@@ -1,0 +1,79 @@
+/// Product and Service Code (what was bought). Type derived from the first character of the code.
+table DimPSC
+	lineageTag: c019082d-321c-4dd6-b720-20607e342989
+
+	/// Surrogate text key built in stg_ContractTransactions (trimmed, upper-cased, UNKNOWN when blank).
+	column PSCKey
+		dataType: string
+		isHidden
+		isKey
+		lineageTag: 345b3fcc-9842-4ee2-b72b-5dd51a6df595
+		summarizeBy: none
+		sourceColumn: PSCKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'PSC Code'
+		dataType: string
+		lineageTag: c5e29ae3-4ead-409a-8362-ba71b8068bf8
+		summarizeBy: none
+		sourceColumn: PSC Code
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'PSC Description'
+		dataType: string
+		lineageTag: 1e914b3e-0c12-46a9-8d72-6021f7aa318e
+		summarizeBy: none
+		sourceColumn: PSC Description
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'PSC Label'
+		dataType: string
+		lineageTag: 351d8501-25b5-4258-bc42-20d34c8fab58
+		summarizeBy: none
+		sourceColumn: PSC Label
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'PSC Type'
+		dataType: string
+		lineageTag: 6e919254-7c22-495d-b377-c58c150f9abd
+		summarizeBy: none
+		sourceColumn: PSC Type
+
+		annotation SummarizationSetBy = Automatic
+
+	hierarchy 'PSC Hierarchy'
+		lineageTag: 9bd7d7d4-dae8-482d-8187-0484b7a10c2a
+
+		level Type
+			lineageTag: 939dfeb9-6ca5-4cd9-ab21-41cf822da080
+			column: 'PSC Type'
+
+		level PSC
+			lineageTag: 3b4e308d-0198-456f-9370-7e211707350d
+			column: 'PSC Label'
+
+	partition DimPSC = m
+		mode: import
+		source =
+				let
+				    Source = stg_ContractTransactions,
+				    Base = fnLatestByKey(Source, "PSCKey",
+				        {"product_or_service_code", "product_or_service_code_description"},
+				        {"PSC Code", "PSC Description"},
+				        {"", "Unknown"}),
+				    AddLabel = Table.AddColumn(Base, "PSC Label", each if [PSC Code] = "" then "Unknown" else [PSC Code] & " - " & [PSC Description], type text),
+				    AddType = Table.AddColumn(AddLabel, "PSC Type", each
+				        let c = Text.Start([PSC Code], 1) in
+				        if c = "" then "Unknown"
+				        else if List.Contains({"0".."9"}, c) then "Product"
+				        else if c = "A" then "Research and Development"
+				        else "Service", type text)
+				in
+				    AddType
+
+	annotation PBI_ResultType = Table
+

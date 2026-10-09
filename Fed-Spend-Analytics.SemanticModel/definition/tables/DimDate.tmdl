@@ -1,0 +1,185 @@
+/// Federal fiscal calendar (FY starts Oct 1). Range derived from the fact table, padded to whole fiscal years.
+table DimDate
+	lineageTag: 183986f6-55d9-4e6b-9421-b75c34600442
+	dataCategory: Time
+
+	column Date
+		dataType: dateTime
+		isKey
+		formatString: Short Date
+		lineageTag: 94ecf9b8-4d34-4eba-8e94-1435968897ae
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Date]
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column 'Fiscal Year Number'
+		dataType: int64
+		formatString: 0
+		lineageTag: c27bbd54-3fe3-49fd-aa43-601403323570
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Fiscal Year Number]
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Fiscal Year'
+		dataType: string
+		lineageTag: dc32b735-f173-4a6c-b998-08952eea6fc5
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Fiscal Year]
+		sortByColumn: 'Fiscal Year Number'
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Fiscal Quarter Number'
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: 78d42e7f-699b-4913-a580-b41bcc589144
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Fiscal Quarter Number]
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Fiscal Quarter'
+		dataType: string
+		lineageTag: 2e08585e-e831-4b43-a0cd-adda24488805
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Fiscal Quarter]
+		sortByColumn: 'Fiscal Quarter Number'
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Fiscal Year Quarter Number'
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: 4379b8da-3e37-4df1-97a3-f50855832246
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Fiscal Year Quarter Number]
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Fiscal Year Quarter'
+		dataType: string
+		lineageTag: dafd231a-5dd9-417c-852f-5ee8528a6c70
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Fiscal Year Quarter]
+		sortByColumn: 'Fiscal Year Quarter Number'
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Fiscal Month Number'
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: 6b8c4da6-2a41-4834-95e1-dd3bc404a7d0
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Fiscal Month Number]
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Month Name'
+		dataType: string
+		lineageTag: 6d8ab7ed-e4ce-4226-a2b2-c47a46a14ead
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Month Name]
+		sortByColumn: 'Fiscal Month Number'
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Month Short'
+		dataType: string
+		lineageTag: e296fcba-6f3a-48c0-b2c8-c801e4c1219f
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Month Short]
+		sortByColumn: 'Fiscal Month Number'
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Calendar Year'
+		dataType: int64
+		formatString: 0
+		lineageTag: 5111be13-8941-477d-b8bb-e39ab90ceb88
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Calendar Year]
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Year Month'
+		dataType: string
+		lineageTag: bf8a1fb1-3bd3-4ef6-99c1-d4a10052242f
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Year Month]
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Month Start'
+		dataType: dateTime
+		formatString: Short Date
+		lineageTag: d98698ec-5722-4785-9835-cde9ca90ebbd
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Month Start]
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	hierarchy 'Fiscal Calendar'
+		lineageTag: 35a8ba9e-69c9-4775-96e2-d4f4ad70b07f
+
+		level 'Fiscal Year'
+			lineageTag: 2a91cb9f-22b8-42ce-a410-6545a23d554e
+			column: 'Fiscal Year'
+
+		level 'Fiscal Quarter'
+			lineageTag: 2fe7159e-9029-4286-96cc-7b43b8e6da3d
+			column: 'Fiscal Quarter'
+
+		level Month
+			lineageTag: cedbba90-ffb9-427d-be62-3328d24f2156
+			column: 'Month Name'
+
+		level Date
+			lineageTag: a4abacb0-3059-43d7-9679-695240ab2d1c
+			column: Date
+
+	partition DimDate = calculated
+		mode: import
+		source =
+				VAR MinDate = MIN ( FactContractTransactions[Action Date] )
+				VAR MaxDate = MAX ( FactContractTransactions[Action Date] )
+				VAR StartDate = DATE ( YEAR ( MinDate ) - IF ( MONTH ( MinDate ) < 10, 1, 0 ), 10, 1 )
+				VAR EndDate = DATE ( YEAR ( MaxDate ) + IF ( MONTH ( MaxDate ) >= 10, 1, 0 ), 9, 30 )
+				RETURN
+				    ADDCOLUMNS (
+				        CALENDAR ( StartDate, EndDate ),
+				        "Fiscal Year Number", YEAR ( [Date] ) + IF ( MONTH ( [Date] ) >= 10, 1, 0 ),
+				        "Fiscal Year", "FY" & ( YEAR ( [Date] ) + IF ( MONTH ( [Date] ) >= 10, 1, 0 ) ),
+				        "Fiscal Quarter Number", QUOTIENT ( MOD ( MONTH ( [Date] ) + 2, 12 ), 3 ) + 1,
+				        "Fiscal Quarter", "Q" & ( QUOTIENT ( MOD ( MONTH ( [Date] ) + 2, 12 ), 3 ) + 1 ),
+				        "Fiscal Year Quarter Number", ( YEAR ( [Date] ) + IF ( MONTH ( [Date] ) >= 10, 1, 0 ) ) * 10 + QUOTIENT ( MOD ( MONTH ( [Date] ) + 2, 12 ), 3 ) + 1,
+				        "Fiscal Year Quarter", "FY" & ( YEAR ( [Date] ) + IF ( MONTH ( [Date] ) >= 10, 1, 0 ) ) & " Q" & ( QUOTIENT ( MOD ( MONTH ( [Date] ) + 2, 12 ), 3 ) + 1 ),
+				        "Fiscal Month Number", MOD ( MONTH ( [Date] ) + 2, 12 ) + 1,
+				        "Month Name", FORMAT ( [Date], "MMMM" ),
+				        "Month Short", FORMAT ( [Date], "MMM" ),
+				        "Calendar Year", YEAR ( [Date] ),
+				        "Year Month", FORMAT ( [Date], "YYYY-MM" ),
+				        "Month Start", DATE ( YEAR ( [Date] ), MONTH ( [Date] ), 1 )
+				    )
+

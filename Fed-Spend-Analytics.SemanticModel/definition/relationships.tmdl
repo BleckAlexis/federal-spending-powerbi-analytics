@@ -1,0 +1,28 @@
+relationship 15260b67-040e-4fd4-9f87-428f73dbdf58
+	fromColumn: FactContractTransactions.'Action Date'
+	toColumn: DimDate.Date
+
+relationship 17b66c69-ddd9-49e7-9612-03451811f6b8
+	fromColumn: FactContractTransactions.AgencyKey
+	toColumn: DimAgency.AgencyKey
+
+relationship 0321275f-0fd1-42fc-9af5-d9d405323199
+	fromColumn: FactContractTransactions.RecipientKey
+	toColumn: DimRecipient.RecipientKey
+
+relationship 214a66cc-f8c2-45a5-b0e9-4982523bf8c1
+	fromColumn: FactContractTransactions.NAICSKey
+	toColumn: DimNAICS.NAICSKey
+
+relationship 82d52d5f-e1a5-464b-8416-59662742b4d9
+	fromColumn: FactContractTransactions.PSCKey
+	toColumn: DimPSC.PSCKey
+
+relationship cc1bf15d-5db8-4355-8280-4498c8bdb6ee
+	fromColumn: FactContractTransactions.PlaceKey
+	toColumn: DimPlaceOfPerformance.PlaceKey
+
+relationship 36444ff7-98b7-4cc6-a6a4-6a1c854b63e0
+	fromColumn: FactContractTransactions.ContractTypeKey
+	toColumn: DimContractType.ContractTypeKey
+

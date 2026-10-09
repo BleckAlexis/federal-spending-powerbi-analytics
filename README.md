@@ -1,0 +1,232 @@
+# Federal Spending Analytics — DHS Contract Obligations (FY2023–FY2025)
+
+A Power BI semantic model of U.S. Department of Homeland Security (DHS) prime contract
+transactions for federal fiscal years 2023–2025, built from public
+[USAspending.gov](https://www.usaspending.gov) data. The project is stored as a
+Power BI Project (PBIP) with the semantic model in TMDL and the report in PBIR, so the full model
+definition is human-readable and version-controlled.
+
+| | |
+|---|---|
+| Scope | DHS prime contract transactions, action dates 2022-10-01 to 2025-09-30 |
+| Volume | 169,336 transactions · 85,027 awards · 13,522 recipients |
+| Net obligations | **$75.84B** (FY2023 $23.90B · FY2024 $23.60B · FY2025 $28.34B) |
+| Model | Star schema: 1 fact table, 7 dimensions, 33 measures |
+| Status | Semantic model built and reconciled to source; report pages not started |
+
+---
+
+## Data source
+
+- **Publisher:** USAspending.gov (U.S. Department of the Treasury), public domain.
+- **Dataset:** *Prime Award Transactions — Contracts* (one row per contract action: base awards,
+  modifications, option exercises, de-obligations, close-outs).
+- **Extract contents:** awarding agency = Department of Homeland Security; action dates
+  2022-10-01 to 2025-09-30; award types A–D (BPA call, purchase order, delivery order, definitive contract).
+  Use these as the download filters to reproduce it.
+- **How to get it:** [Custom Award Data download](https://www.usaspending.gov/download_center/custom_award_data)
+  with the filter above, or the per-agency files in the
+  [Award Data Archive](https://www.usaspending.gov/download_center/award_data_archive)
+  (agency code 070, `FY2023`–`FY2025` `Contracts_Full`).
+- **Extract used for the published figures:** downloaded 2026-10-09, 297 columns.
+
+Raw and processed data files are **not** in this repository (see `.gitignore`); follow the setup steps
+below to recreate them.
+
+## Repository structure
+
+```
+Fed-Spend-Analytics.pbip                 Power BI project entry point
+Fed-Spend-Analytics.SemanticModel/       Semantic model (TMDL)
+  definition/expressions.tmdl            DataFolderPath parameter, staging query, fnLatestByKey
+  definition/tables/*.tmdl               Fact, dimensions and _Measures
+  definition/relationships.tmdl          7 star-schema relationships
+Fed-Spend-Analytics.Report/              Report (PBIR)
+scripts/prepare_data.py                  Raw CSV -> slim processed CSV (standard library only)
+Data/Raw/                                USAspending downloads        (git-ignored)
+Data/Processed/                          contract_transactions.csv    (git-ignored)
+```
+
+## Setup
+
+Requirements: Power BI Desktop (with PBIP / TMDL support) and Python 3.9+ (no packages needed).
+
+1. **Download the data** (see *Data source*) and save the CSV file(s) named
+   `Contracts_PrimeTransactions_*.csv` in `Data/Raw/`. Large downloads are split into `_1`, `_2`, … files;
+   keep them all.
+2. **Prepare the data** from the project root:
+   ```
+   python scripts/prepare_data.py
+   ```
+   This combines all raw files, removes duplicate transactions, keeps the 44 columns the model uses and
+   writes `Data/Processed/contract_transactions.csv` (~120 MB instead of ~405 MB).
+3. **Point the model at your copy.** Open `Fed-Spend-Analytics.pbip`, go to
+   **Transform data → Manage parameters** and set `DataFolderPath` to the full path of your
+   `Data\Processed\` folder, including the trailing backslash.
+4. **Refresh** (Home → Refresh).
+5. **Validate** with the query in [Validation](#validation).
+
+To update the data later, replace the files in `Data/Raw/`, rerun step 2 and refresh.
+
+## Semantic model
+
+```mermaid
+flowchart LR
+    DimDate --> F[FactContractTransactions]
+    DimAgency --> F
+    DimRecipient --> F
+    DimNAICS --> F
+    DimPSC --> F
+    DimPlaceOfPerformance --> F
+    DimContractType --> F
+```
+
+All relationships are **many-to-one, active and single-direction** (dimension filters fact).
+There are no bidirectional or many-to-many relationships and no dimension-to-dimension links.
+
+### Tables
+
+| Table | Grain / key | Rows | Notes |
+|---|---|---|---|
+| **FactContractTransactions** | One row per contract action · `Transaction Key` | 169,336 | `Federal Action Obligation` kept with its sign; `Is Base Action` flag; award ID, modification number, description and USAspending link as degenerate attributes |
+| **DimDate** | Day · `Date` | 1,096 | DAX calculated table, marked as date table. Federal fiscal year: Oct 1 – Sep 30 (Q1 = Oct–Dec). Range follows the data, padded to whole fiscal years |
+| **DimAgency** | Awarding office · `sub-agency code \| office code` | 113 | Agency → Sub-Agency → Office hierarchy |
+| **DimRecipient** | Recipient UEI | 13,523 | Latest reported name/parent/location (Type 1). A recipient with no reported parent is its own parent |
+| **DimNAICS** | 6-digit NAICS code | 808 | Latest description per code; 20 NAICS sectors (Sector → NAICS hierarchy) |
+| **DimPSC** | Product/Service Code | 1,513 | Latest description; PSC Type = Product / Service / Research and Development |
+| **DimPlaceOfPerformance** | Country + state · `country \| state` | 128 | Domestic / Foreign → Country → State |
+| **DimContractType** | Combination of award type, pricing, competition, set-aside, business size, action type | 2,163 | Junk dimension with derived Competition Status, Set-Aside Status, Small Business Flag; blank action type labelled BASE AWARD |
+| **_Measures** | — | — | Home table for all measures |
+
+Row counts include one explicit **UNKNOWN** member per dimension (used by 637 transactions with no
+NAICS code and 487 with no PSC).
+
+### Key design decisions
+
+- **Transaction grain.** USAspending award summaries carry each award's lifetime total; only the
+  transaction file attributes obligations to the fiscal year in which they occurred.
+- **Net obligations, negatives preserved.** `Federal Action Obligation` is summed as reported. The
+  20,539 negative rows (de-obligations, −$6.79B) are never filtered out or made absolute.
+- **Award-level running totals are excluded** (`total_dollars_obligated`, `current_total_value_of_award`,
+  `potential_total_value_of_award`): they repeat on every transaction and would be overstated if summed.
+- **Duplicate-safe dimensions.** Keys are trimmed and upper-cased in Power Query (VertiPaq keys are
+  case-insensitive), dimensions are grouped by key keeping the most recent transaction's attributes, and
+  blanks map to a single UNKNOWN member. This keeps every relationship one-to-many.
+- **Implicit measures are disabled.** Report visuals must use the defined measures.
+- **Incremental refresh is intentionally not configured.** A CSV source cannot fold the
+  `RangeStart`/`RangeEnd` filter, so every partition would rescan the whole file. At this size a full
+  refresh is faster. For a larger scope, land the data in a foldable source (e.g. a Fabric Lakehouse or
+  Azure SQL), partition on `Action Date`, and apply USAspending's monthly delta files.
+
+## Measures and KPIs
+
+All measures live in `_Measures`, grouped into display folders.
+
+| Folder | Measure | Definition |
+|---|---|---|
+| Obligations | **Net Obligations** | Sum of Federal Action Obligation, including de-obligations. Primary financial measure |
+| | Gross Obligations | Positive obligations only |
+| | Deobligations | Negative obligations only (shown as negative) |
+| | Avg Net Obligation per Award | Net Obligations ÷ distinct awards with activity in context (new *and* continuing awards) |
+| Volume | Transactions | Contract actions, including modifications and zero-dollar administrative actions |
+| | Awards | Distinct awards with at least one action in context |
+| | Recipients | Distinct recipient UEIs with at least one action in context |
+| Time Intelligence | Net Obligations FYTD | Fiscal year-to-date (year ends Sep 30) |
+| | Net Obligations PY / YoY / YoY % | Same period of the prior fiscal year and the change from it |
+| Mix | % of Total Obligations | Share of the visual's total (ALLSELECTED) |
+| | Small Business Share | Net obligations to small businesses (CO size determination = S) ÷ Net Obligations |
+| | Competed Share | Net obligations with extent competed A, D, F or CDO ÷ Net Obligations |
+| | Set-Aside Share | Net obligations with a set-aside (code other than NONE/blank) ÷ Net Obligations |
+| | Recipient Rank | Rank by recipient name among names visible in the visual |
+| KPIs | **New Awards** | Distinct awards whose base action (modification 0) was signed in context |
+| | **Deobligation Rate** | −Deobligations ÷ Gross Obligations |
+| | **Avg Offers Received** | Average offers on base actions reporting 1+ offers |
+| | **Single-Offer Rate** | Competed awards (A, D, F, CDO) with exactly one offer ÷ competed awards reporting 1+ offers; base actions only |
+| | **Top 10 Recipient Share** | Net obligations of the top 10 parent companies (parent UEI) ÷ net obligations of all recipients in context |
+| | Selected FY Label | "FY2025", "FY2023-FY2025" or "FY2023, FY2025", for dynamic titles |
+| Data Quality | DQ … | Duplicate keys, orphan keys, New Awards definition checks, unknown-member shares, de-obligation rows, date range |
+
+### KPI definitions and their limits
+
+- **Multi-year totals.** `PY`, `YoY`, `YoY %` and `FYTD` return blank unless exactly one fiscal year is
+  in context, so a grand total across FY2023–FY2025 never shows a misleading comparison. FY2023 has no
+  prior year in the dataset, so its YoY is blank.
+- **Net-based shares.** Small Business, Competed and Set-Aside Share divide by *net* obligations,
+  consistent with USAspending. In a slice where de-obligations exceed new obligations, a share can fall
+  outside 0–100%.
+- **New Awards.** A base action is a transaction whose modification number contains only zeros.
+  This was validated against the source: every base action has transaction number 0 and a blank action
+  type, each award has at most one, and no modification precedes it. Awards whose base action was signed
+  before FY2023 (27,409 awards, plus 342 whose performance started in-period after a pre-FY2023 base
+  signature) are *continuing*, not new. Two DQ measures re-check this definition after every refresh.
+- **Offer-based KPIs.** Modifications repeat the base award's offer count, so only base actions are used.
+  Blank offer counts come only from delivery orders and BPA calls, whose offers are reported on the
+  parent contract (IDV); they are excluded rather than treated as zero. No zero or out-of-range values
+  exist in this extract (maximum 149).
+- **Recipient identity.** `Recipients` counts UEIs; `Recipient Rank` ranks by recipient *name*
+  (204 names are shared by more than one UEI, e.g. LEIDOS, INC. with 12); `Top 10 Recipient Share`
+  groups by *parent UEI* (company family). Ties at rank 10 can include more than 10 parents.
+- **Recipient attributes are Type 1.** Each UEI shows its most recent name, parent and location; history
+  is not kept.
+
+## Validation
+
+Reference values computed independently from the raw USAspending CSV.
+
+| Fiscal year | Transactions | Net Obligations | Gross | Deobligations | Negative rows | New Awards | Deobligation Rate | Avg Offers | Single-Offer Rate | Top 10 Share | YoY % |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| FY2023 | 55,623 | $23,897,999,778.85 | $25,691,520,158.67 | −$1,793,520,379.82 | 6,205 | 19,454 | 6.98% | 3.12 | 39.8% (4,204 / 10,568) | 21.7% | — |
+| FY2024 | 57,530 | $23,604,370,475.80 | $25,708,885,271.72 | −$2,104,514,795.92 | 6,856 | 19,330 | 8.19% | 3.36 | 32.2% (3,242 / 10,074) | 22.5% | −1.2% |
+| FY2025 | 56,183 | $28,337,153,017.36 | $31,231,454,437.17 | −$2,894,301,419.81 | 7,478 | 18,492 | 9.27% | 3.96 | 29.3% (2,646 / 9,028) | 30.9% | +20.1% |
+| **Total** | **169,336** | **$75,839,523,272.01** | **$82,631,859,867.56** | **−$6,792,336,595.55** | **20,539** | **57,276** | **8.22%** | **3.47** | **34.0% (10,092 / 29,670)** | **22.7%** | — |
+
+Other expected values: Awards 85,027 · Recipients 13,522 · DQ measures 0 · Unknown NAICS 0.38% ·
+Unknown PSC 0.29% · action dates 2022-10-01 to 2025-09-30. Small Business Share 37.4%, Competed Share 88.5%,
+Set-Aside Share 14.4%.
+
+To check a refreshed model, run in **DAX query view**:
+
+```dax
+EVALUATE
+SUMMARIZECOLUMNS (
+    DimDate[Fiscal Year],
+    "Transactions", [Transactions],
+    "Net", [Net Obligations],
+    "Gross", [Gross Obligations],
+    "Deobligations", [Deobligations],
+    "Negative Rows", [DQ Deobligation Rows],
+    "New Awards", [New Awards],
+    "Deobligation Rate", [Deobligation Rate],
+    "Avg Offers", [Avg Offers Received],
+    "Single-Offer Rate", [Single-Offer Rate],
+    "Top 10 Share", [Top 10 Recipient Share],
+    "YoY %", [Net Obligations YoY %]
+)
+EVALUATE
+ROW (
+    "Transactions", [Transactions],
+    "Net", [Net Obligations],
+    "New Awards", [New Awards],
+    "Single-Offer Rate", [Single-Offer Rate],
+    "Top 10 Share", [Top 10 Recipient Share],
+    "PY at total (expect blank)", [Net Obligations PY],
+    "FY Label", [Selected FY Label],
+    "Awards", [Awards],
+    "Recipients", [Recipients],
+    "Duplicate Keys", [DQ Duplicate Transaction Keys],
+    "Orphan Keys", [DQ Orphan Keys],
+    "Multi Base Actions", [DQ Awards With Multiple Base Actions],
+    "Base With Action Type", [DQ Base Actions With Action Type],
+    "Min Date", [DQ Min Action Date],
+    "Max Date", [DQ Max Action Date]
+)
+```
+
+## Data limitations
+
+- USAspending data is agency-reported and subject to the data-quality issues documented by GAO and the
+  Congressional Research Service; figures can change as agencies correct records. Results reflect the
+  extract downloaded on 2026-10-09.
+- Offer counts for delivery orders and BPA calls are recorded on the parent contract and are not in this
+  extract.
+- Funding agency is not yet modelled; all analysis is by awarding agency.

@@ -1,0 +1,301 @@
+/// Home table for all report measures.
+table _Measures
+	lineageTag: 79fac1ab-9299-40d2-b780-4d2447ebf816
+
+	/// Primary financial measure: sum of federal_action_obligation including negative de-obligations.
+	measure 'Net Obligations' = SUM ( FactContractTransactions[Federal Action Obligation] )
+		formatString: \$#,0;(\$#,0);\$#,0
+		displayFolder: Obligations
+		lineageTag: fd8851c7-87e0-4471-93d5-d3a6f6ce54a3
+
+	/// Positive obligations only.
+	measure 'Gross Obligations' = CALCULATE ( [Net Obligations], FactContractTransactions[Federal Action Obligation] > 0 )
+		formatString: \$#,0;(\$#,0);\$#,0
+		displayFolder: Obligations
+		lineageTag: 524f5996-be26-4dcd-9a53-144f9eade491
+
+	/// Negative obligations only (shown as negative values).
+	measure Deobligations = CALCULATE ( [Net Obligations], FactContractTransactions[Federal Action Obligation] < 0 )
+		formatString: \$#,0;(\$#,0);\$#,0
+		displayFolder: Obligations
+		lineageTag: aa9b34f3-b73c-4649-a23c-29cbef6b2268
+
+	/// Net Obligations divided by the number of distinct awards with at least one transaction in the current filter context.
+	/// Includes continuing awards (modifications, option exercises), not only new awards; net of de-obligations, so it can be negative.
+	measure 'Avg Net Obligation per Award' = DIVIDE ( [Net Obligations], [Awards] )
+		formatString: \$#,0;(\$#,0);\$#,0
+		displayFolder: Obligations
+		lineageTag: 19be6086-7652-40ab-9d7a-7741f4ee3f8e
+
+	/// Number of contract transactions (actions), including modifications and zero-dollar administrative actions.
+	measure Transactions = COUNTROWS ( FactContractTransactions )
+		formatString: #,0
+		displayFolder: Volume
+		lineageTag: 03376afe-d816-4202-aea2-7d8d656a296c
+
+	/// Distinct awards with at least one transaction in the current filter context (new and continuing).
+	measure Awards = DISTINCTCOUNT ( FactContractTransactions[Award Key] )
+		formatString: #,0
+		displayFolder: Volume
+		lineageTag: 9383da2a-18c8-41d6-bfc6-0f7d06290675
+
+	/// Distinct recipient UEIs with at least one transaction in the current filter context.
+	measure Recipients = DISTINCTCOUNT ( FactContractTransactions[RecipientKey] )
+		formatString: #,0
+		displayFolder: Volume
+		lineageTag: c2a4865b-40d8-44ad-8d9e-8f2f698182be
+
+	/// Fiscal year-to-date (federal fiscal year Oct 1 - Sep 30). Blank when more than one fiscal year is in context.
+	measure 'Net Obligations FYTD' =
+			IF (
+			    HASONEVALUE ( DimDate[Fiscal Year Number] ),
+			    TOTALYTD ( [Net Obligations], DimDate[Date], "09-30" )
+			)
+		formatString: \$#,0;(\$#,0);\$#,0
+		displayFolder: Time Intelligence
+		lineageTag: d7a6b2b5-9d0a-448e-b431-e9bd0ed85160
+
+	/// Net Obligations for the same period one fiscal year earlier. Blank when more than one fiscal year is in context
+	/// (e.g. a grand total across FY2023-FY2025), so multi-year totals never show a misleading comparison.
+	measure 'Net Obligations PY' =
+			IF (
+			    HASONEVALUE ( DimDate[Fiscal Year Number] ),
+			    CALCULATE ( [Net Obligations], SAMEPERIODLASTYEAR ( DimDate[Date] ) )
+			)
+		formatString: \$#,0;(\$#,0);\$#,0
+		displayFolder: Time Intelligence
+		lineageTag: 0b5c062e-3199-45f8-96c3-872fbb7b1050
+
+	/// Change in Net Obligations vs. the prior fiscal year. Blank when there is no prior-year value or more than one fiscal year is in context.
+	measure 'Net Obligations YoY' =
+			VAR Curr = [Net Obligations]
+			VAR Prev = [Net Obligations PY]
+			RETURN
+			    IF ( NOT ISBLANK ( Prev ), Curr - Prev )
+		formatString: \$#,0;(\$#,0);\$#,0
+		displayFolder: Time Intelligence
+		lineageTag: 8fc89d19-c63c-41d7-96b7-31928e3f2852
+
+	/// Percent change in Net Obligations vs. the prior fiscal year. Blank for FY2023 (no FY2022 data) and for multi-year totals.
+	measure 'Net Obligations YoY %' = DIVIDE ( [Net Obligations YoY], [Net Obligations PY] )
+		formatString: 0.0%
+		displayFolder: Time Intelligence
+		lineageTag: 96ec8862-f682-4da2-a875-5b9e2caeec9d
+
+	/// Net Obligations as a share of the visual's total (ALLSELECTED). Based on net amounts, so a share can fall
+	/// outside 0-100% in slices where de-obligations exceed new obligations.
+	measure '% of Total Obligations' = DIVIDE ( [Net Obligations], CALCULATE ( [Net Obligations], ALLSELECTED () ) )
+		formatString: 0.0%
+		displayFolder: Mix
+		lineageTag: 5abd1f85-1c75-4b9c-ae47-d52fd2db4876
+
+	/// Net Obligations to small businesses (contracting officer's size determination = S) / all Net Obligations.
+	/// Net-based, consistent with USAspending; can fall outside 0-100% in slices dominated by de-obligations.
+	measure 'Small Business Share' = DIVIDE ( CALCULATE ( [Net Obligations], DimContractType[Small Business Flag] = "Small Business" ), [Net Obligations] )
+		formatString: 0.0%
+		displayFolder: Mix
+		lineageTag: 02a62ea7-3a80-4b96-af1f-2c08b19fd73b
+
+	/// Net Obligations on competed actions (extent competed A, D, F or CDO) / all Net Obligations.
+	/// Net-based; can fall outside 0-100% in slices dominated by de-obligations.
+	measure 'Competed Share' = DIVIDE ( CALCULATE ( [Net Obligations], DimContractType[Competition Status] = "Competed" ), [Net Obligations] )
+		formatString: 0.0%
+		displayFolder: Mix
+		lineageTag: ef396663-f4b3-4e26-8e89-f773424610c8
+
+	/// Net Obligations on actions with a set-aside (set-aside code other than NONE or blank) / all Net Obligations.
+	/// Blank set-aside = not reported (typical for orders, which inherit it from the parent contract) and is not counted as a set-aside.
+	measure 'Set-Aside Share' = DIVIDE ( CALCULATE ( [Net Obligations], DimContractType[Set-Aside Status] = "Set-Aside" ), [Net Obligations] )
+		formatString: 0.0%
+		displayFolder: Mix
+		lineageTag: 68153d6e-d903-4c14-9226-c4dd4b7a386a
+
+	/// Rank (1 = highest) of Net Obligations by recipient NAME among the names visible in the visual (ALLSELECTED).
+	/// Names shared by several UEIs (e.g. LEIDOS, INC. has 12) are ranked as one. Blank unless Recipient Name is on the visual.
+	/// Ties share a rank. For company-level concentration use Top 10 Recipient Share (parent UEI).
+	measure 'Recipient Rank' =
+			IF (
+			    ISINSCOPE ( DimRecipient[Recipient Name] ),
+			    RANKX ( ALLSELECTED ( DimRecipient[Recipient Name] ), [Net Obligations] )
+			)
+		formatString: 0
+		displayFolder: Mix
+		lineageTag: c3e71d6b-9c42-4192-a443-c7b9a1a74fac
+
+	/// Expected 0.
+	measure 'DQ Duplicate Transaction Keys' = COUNTROWS ( FactContractTransactions ) - DISTINCTCOUNT ( FactContractTransactions[Transaction Key] )
+		formatString: #,0
+		displayFolder: Data Quality
+		lineageTag: 8246a66a-1340-42ea-90b5-c601c259eb1f
+
+	/// Fact keys with no matching dimension row, summed across all dimensions. Expected 0.
+	measure 'DQ Orphan Keys' =
+			COUNTROWS ( EXCEPT ( VALUES ( FactContractTransactions[AgencyKey] ), VALUES ( DimAgency[AgencyKey] ) ) )
+			    + COUNTROWS ( EXCEPT ( VALUES ( FactContractTransactions[RecipientKey] ), VALUES ( DimRecipient[RecipientKey] ) ) )
+			    + COUNTROWS ( EXCEPT ( VALUES ( FactContractTransactions[NAICSKey] ), VALUES ( DimNAICS[NAICSKey] ) ) )
+			    + COUNTROWS ( EXCEPT ( VALUES ( FactContractTransactions[PSCKey] ), VALUES ( DimPSC[PSCKey] ) ) )
+			    + COUNTROWS ( EXCEPT ( VALUES ( FactContractTransactions[PlaceKey] ), VALUES ( DimPlaceOfPerformance[PlaceKey] ) ) )
+			    + COUNTROWS ( EXCEPT ( VALUES ( FactContractTransactions[ContractTypeKey] ), VALUES ( DimContractType[ContractTypeKey] ) ) )
+			    + 0
+		formatString: #,0
+		displayFolder: Data Quality
+		lineageTag: 0c13206c-0358-46c0-b9da-05c4f625ed87
+
+	measure 'DQ Unknown NAICS %' = DIVIDE ( CALCULATE ( [Transactions], DimNAICS[NAICSKey] = "UNKNOWN" ), [Transactions] )
+		formatString: 0.0%
+		displayFolder: Data Quality
+		lineageTag: 9081878a-4f5f-46b7-ba12-12e8cc79104a
+
+	measure 'DQ Unknown PSC %' = DIVIDE ( CALCULATE ( [Transactions], DimPSC[PSCKey] = "UNKNOWN" ), [Transactions] )
+		formatString: 0.0%
+		displayFolder: Data Quality
+		lineageTag: ad70f977-91e2-4507-b724-ef662f56d830
+
+	measure 'DQ Deobligation Rows' = CALCULATE ( [Transactions], FactContractTransactions[Federal Action Obligation] < 0 )
+		formatString: #,0
+		displayFolder: Data Quality
+		lineageTag: 9930464a-3eb4-4787-8031-257a13387c55
+
+	measure 'DQ Min Action Date' = MIN ( FactContractTransactions[Action Date] )
+		formatString: Short Date
+		displayFolder: Data Quality
+		lineageTag: 4864ce33-34a8-413e-a99e-e24565529984
+
+	measure 'DQ Max Action Date' = MAX ( FactContractTransactions[Action Date] )
+		formatString: Short Date
+		displayFolder: Data Quality
+		lineageTag: c00c7219-1a37-4f16-9988-c38a9ce22a82
+
+	/// Distinct awards whose base action (modification 0) was signed in the current filter context.
+	/// Counts each award once, in the fiscal year its base action was signed. Awards signed before FY2023 are continuing, not new.
+	measure 'New Awards' =
+			CALCULATE (
+			    DISTINCTCOUNT ( FactContractTransactions[Award Key] ),
+			    FactContractTransactions[Is Base Action] = TRUE ()
+			)
+		formatString: #,0
+		displayFolder: KPIs
+		lineageTag: 3b8e5d2a-6c41-4f0e-9a7d-1e2f4c5b6a71
+
+	/// De-obligated dollars as a share of gross (positive) obligations: -Deobligations / Gross Obligations.
+	measure 'Deobligation Rate' = DIVIDE ( - [Deobligations], [Gross Obligations] )
+		formatString: 0.0%
+		displayFolder: KPIs
+		lineageTag: 7c2d9e4f-1a3b-4c5d-8e6f-2a3b4c5d6e72
+
+	/// Average number of offers on base award actions with a reported offer count of 1 or more.
+	/// Base actions only (modifications repeat the base value); blank counts (delivery orders/BPA calls report offers on the parent IDV) are excluded.
+	measure 'Avg Offers Received' =
+			CALCULATE (
+			    AVERAGE ( FactContractTransactions[Offers Received] ),
+			    FactContractTransactions[Is Base Action] = TRUE (),
+			    FactContractTransactions[Offers Received] >= 1
+			)
+		formatString: #,0.0
+		displayFolder: KPIs
+		lineageTag: 9e4f1b6a-3c5d-4e7f-a081-4c5d6e7f8a73
+
+	/// Denominator of Single-Offer Rate: competed (A, D, F, CDO) awards whose base action is in context and reports 1+ offers.
+	measure 'Single-Offer Eligible Awards' =
+			CALCULATE (
+			    DISTINCTCOUNT ( FactContractTransactions[Award Key] ),
+			    FactContractTransactions[Is Base Action] = TRUE (),
+			    FactContractTransactions[Offers Received] >= 1,
+			    DimContractType[Competition Status] = "Competed"
+			)
+		formatString: #,0
+		displayFolder: KPIs\Support
+		lineageTag: 1f6a3d8c-5e7f-4a91-b2c3-6e7f8a9b0c74
+
+	/// Numerator of Single-Offer Rate: eligible competed awards that received exactly one offer.
+	measure 'Single-Offer Awards' =
+			CALCULATE (
+			    DISTINCTCOUNT ( FactContractTransactions[Award Key] ),
+			    FactContractTransactions[Is Base Action] = TRUE (),
+			    FactContractTransactions[Offers Received] = 1,
+			    DimContractType[Competition Status] = "Competed"
+			)
+		formatString: #,0
+		displayFolder: KPIs\Support
+		lineageTag: 4a8c5f0e-7a9b-4cd3-94e5-8a9b0c1d2e75
+
+	/// Share of competed awards (base action in context, extent competed A, D, F or CDO, 1+ offers reported) that received exactly one offer.
+	/// A standard indicator of how much effective competition competed contracts attract.
+	measure 'Single-Offer Rate' = DIVIDE ( [Single-Offer Awards], [Single-Offer Eligible Awards] )
+		formatString: 0.0%
+		displayFolder: KPIs
+		lineageTag: 6c0e7a2b-9c1d-4ef5-b6a7-0c1d2e3f4a76
+
+	/// Recipient identity = parent UEI (company family; a recipient with no reported parent is its own parent).
+	/// Net Obligations of the 10 parent UEIs with the highest Net Obligations in context / Net Obligations of all recipients
+	/// in context (recipient filters removed). Ties at rank 10 can include more than 10 parents.
+	measure 'Top 10 Recipient Share' =
+			VAR ParentNet =
+			    ADDCOLUMNS ( VALUES ( DimRecipient[Parent UEI] ), "@Net", [Net Obligations] )
+			VAR Top10Net =
+			    SUMX ( TOPN ( 10, ParentNet, [@Net], DESC ), [@Net] )
+			VAR AllRecipientsNet =
+			    CALCULATE ( [Net Obligations], REMOVEFILTERS ( DimRecipient ) )
+			RETURN
+			    DIVIDE ( Top10Net, AllRecipientsNet )
+		formatString: 0.0%
+		displayFolder: KPIs
+		lineageTag: 8e2a9c4d-1e3f-4a07-98b9-2e3f4a5b6c77
+
+	/// Text label of the fiscal year(s) in context for titles: "FY2025", "FY2023-FY2025" (contiguous) or "FY2023, FY2025".
+	measure 'Selected FY Label' =
+			VAR MinFY = MIN ( DimDate[Fiscal Year Number] )
+			VAR MaxFY = MAX ( DimDate[Fiscal Year Number] )
+			VAR FYCount = DISTINCTCOUNT ( DimDate[Fiscal Year Number] )
+			RETURN
+			    SWITCH (
+			        TRUE (),
+			        FYCount = 1, "FY" & MinFY,
+			        MaxFY - MinFY + 1 = FYCount, "FY" & MinFY & "-FY" & MaxFY,
+			        CONCATENATEX ( VALUES ( DimDate[Fiscal Year] ), DimDate[Fiscal Year], ", ", DimDate[Fiscal Year Number], ASC )
+			    )
+		displayFolder: KPIs
+		lineageTag: 0a4c1e6f-3a5b-4c29-ba1d-4a5b6c7d8e78
+
+	/// New Awards definition check: awards with more than one base action. Expected 0.
+	measure 'DQ Awards With Multiple Base Actions' =
+			COUNTROWS (
+			    FILTER (
+			        VALUES ( FactContractTransactions[Award Key] ),
+			        CALCULATE ( COUNTROWS ( FactContractTransactions ), FactContractTransactions[Is Base Action] = TRUE () ) > 1
+			    )
+			) + 0
+		formatString: #,0
+		displayFolder: Data Quality
+		lineageTag: 2c6e3a8b-5c7d-4e4b-9c3f-6c7d8e9f0a79
+
+	/// New Awards definition check: base actions that carry an action type (base actions should have none). Expected 0.
+	measure 'DQ Base Actions With Action Type' =
+			CALCULATE (
+			    COUNTROWS ( FactContractTransactions ),
+			    FactContractTransactions[Is Base Action] = TRUE (),
+			    DimContractType[Action Type Code] <> ""
+			) + 0
+		formatString: #,0
+		displayFolder: Data Quality
+		lineageTag: 4e8a5c0d-7e9f-4a6d-ae51-8e9f0a1b2c80
+
+	column Placeholder
+		dataType: string
+		isHidden
+		lineageTag: 765109ba-81ab-444b-9d38-a04a4d1feadd
+		summarizeBy: none
+		sourceColumn: Placeholder
+
+		annotation SummarizationSetBy = Automatic
+
+	partition _Measures = m
+		mode: import
+		source =
+				let
+				    Source = #table(type table [Placeholder = text], {})
+				in
+				    Source
+
+	annotation PBI_ResultType = Table
+

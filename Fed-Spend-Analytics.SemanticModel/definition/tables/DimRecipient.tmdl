@@ -1,0 +1,94 @@
+/// Contract recipient (vendor) by UEI. Attributes are the latest reported values (Type 1).
+table DimRecipient
+	lineageTag: 79017604-6793-41bc-9ab4-3dbf9104a7c3
+
+	/// Surrogate text key built in stg_ContractTransactions (trimmed, upper-cased, UNKNOWN when blank).
+	column RecipientKey
+		dataType: string
+		isHidden
+		isKey
+		lineageTag: 4a0c2e9b-b5ff-4e78-9da2-9356f334969e
+		summarizeBy: none
+		sourceColumn: RecipientKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Recipient UEI'
+		dataType: string
+		lineageTag: 2a0817d4-d3d3-4715-89c5-946d27b3878c
+		summarizeBy: none
+		sourceColumn: Recipient UEI
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Recipient Name'
+		dataType: string
+		lineageTag: e54f820a-58e6-4586-b497-4229d4d4b33b
+		summarizeBy: none
+		sourceColumn: Recipient Name
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Parent UEI'
+		dataType: string
+		lineageTag: 9ffd68c7-b8ae-4d2b-937b-4bb381af0ded
+		summarizeBy: none
+		sourceColumn: Parent UEI
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Parent Name'
+		dataType: string
+		lineageTag: 8968e04c-7309-474b-9f14-b6b927bfc619
+		summarizeBy: none
+		sourceColumn: Parent Name
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Recipient City'
+		dataType: string
+		lineageTag: d7437459-bcbf-4a1b-b9f0-ff37408b5e18
+		summarizeBy: none
+		sourceColumn: Recipient City
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Recipient State'
+		dataType: string
+		lineageTag: e3bcb54c-598f-4a9a-b82c-630a24e0eac3
+		summarizeBy: none
+		sourceColumn: Recipient State
+
+		annotation SummarizationSetBy = Automatic
+
+	hierarchy 'Recipient Hierarchy'
+		lineageTag: e06fe2c8-6fce-444c-a989-ce4a4649410b
+
+		level Parent
+			lineageTag: 7ebdc66a-d6b4-4cac-800e-b28798b44c45
+			column: 'Parent Name'
+
+		level Recipient
+			lineageTag: 2d327af0-7d4f-4194-8331-cfa224935e7d
+			column: 'Recipient Name'
+
+	partition DimRecipient = m
+		mode: import
+		source =
+				let
+				    Source = stg_ContractTransactions,
+				    Base = fnLatestByKey(Source, "RecipientKey",
+				        {"recipient_uei", "recipient_name", "recipient_parent_uei", "recipient_parent_name", "recipient_city_name", "recipient_state_code"},
+				        {"Recipient UEI", "Recipient Name", "Parent UEI", "Parent Name", "Recipient City", "Recipient State"},
+				        {"", "Unknown", "", "Unknown", "", ""}),
+				    // A recipient with no reported parent is its own parent
+				    SelfParent = Table.FromRecords(Table.TransformRows(Base, each _ & [
+				        #"Parent UEI" = if _[#"Parent UEI"] = "" then _[#"Recipient UEI"] else _[#"Parent UEI"],
+				        #"Parent Name" = if _[#"Parent Name"] = "" then _[#"Recipient Name"] else _[#"Parent Name"]
+				    ])),
+				    Typed = Table.TransformColumnTypes(SelfParent, List.Transform(Table.ColumnNames(SelfParent), each {_, type text}))
+				in
+				    Typed
+
+	annotation PBI_ResultType = Table
+

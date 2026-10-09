@@ -8,7 +8,11 @@ model Model
 
 annotation __PBI_TimeIntelligenceEnabled = 0
 
+annotation PBI_QueryOrder = ["DataFolderPath","stg_ContractTransactions","Contract Transactions"]
+
 annotation PBI_ProTooling = ["DevMode"]
+
+ref table 'Contract Transactions'
 
 ref cultureInfo en-US
 

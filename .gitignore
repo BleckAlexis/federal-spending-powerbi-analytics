@@ -1,0 +1,56 @@
+# ============================================================
+# Federal Spending Analytics - Power BI (PBIP) project
+# Tracked: *.pbip, *.pbir, *.pbism, *.tmdl, report/page JSON,
+#          .platform, StaticResources, .pbi/editorSettings.json,
+#          and project documentation (*.md, docs/)
+# ============================================================
+
+# ---- Power BI local cache & user-specific settings ----------
+**/.pbi/localSettings.json
+**/.pbi/cache.abf
+**/.pbi/*.abf
+**/.pbi/*.tmp
+
+# ---- Data files (USAspending raw & processed extracts) ------
+data/raw/
+data/processed/
+*.csv
+*.csv.gz
+*.zip
+# Allow small, curated sample files for reviewers, if added later
+!data/sample/
+!data/sample/*.csv
+
+# ---- Credentials & environment files ------------------------
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.pfx
+secrets/
+credentials*.json
+*.secret
+
+# ---- Temporary files & logs ---------------------------------
+*.tmp
+*.temp
+*.bak
+*.swp
+~$*
+*.log
+logs/
+tmp/
+temp/
+
+# ---- OS / editor clutter ------------------------------------
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# ---- Python tooling (if used for data prep) -----------------
+__pycache__/
+*.pyc
+.venv/
+venv/
+.ipynb_checkpoints/

@@ -1,0 +1,11 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "SemanticModel",
+    "displayName": "Fed-Spend-Analytics"
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "0b87d8b2-23e6-4c4d-8212-7baa3cdcf84a"
+  }
+}

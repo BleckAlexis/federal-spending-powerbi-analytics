@@ -321,10 +321,18 @@ table _Measures
 		lineageTag: 8a4e0b6d-5f7c-4db1-ae94-0b6d5f7c8d84
 
 	/// Card caption for Deobligations: de-obligation rate for the period in context, e.g. "9.3% de-obligation rate".
+	/// Blank when there are no transactions. "0.0%" when there is activity and gross obligations but no de-obligations.
+	/// When gross obligations are zero (only de-obligations or zero-dollar actions) the rate is undefined and says so.
 	measure 'Deob Rate Label' =
 			VAR Rate = [Deobligation Rate]
+			VAR Gross = [Gross Obligations]
 			RETURN
-			    IF ( NOT ISBLANK ( Rate ), FORMAT ( Rate, "0.0%" ) & " de-obligation rate" )
+			    SWITCH (
+			        TRUE (),
+			        ISBLANK ( [Transactions] ), BLANK (),
+			        ISBLANK ( Gross ) || Gross = 0, "Rate n/a: no positive obligations",
+			        FORMAT ( COALESCE ( Rate, 0 ), "0.0%" ) & " de-obligation rate"
+			    )
 		displayFolder: Report
 		lineageTag: 9b5f1c7e-6a8d-4ec2-bfa5-1c7e6a8d9e85
 
@@ -370,6 +378,176 @@ table _Measures
 			    IF ( NOT ISBLANK ( Amt ), FORMAT ( Amt, "\$#,0.00\B;(\$#,0.00\B)" ) & " on new awards" )
 		displayFolder: Report
 		lineageTag: a5c68de5-d1ce-4f39-a6b4-8de5d1cef0a5
+
+	/// Distinct parent companies (Parent UEI) with at least one transaction in context. A recipient with no reported
+	/// parent UEI is its own parent. The fact-table filter restricts the count to parents with activity.
+	measure 'Parent Companies' = CALCULATE ( DISTINCTCOUNT ( DimRecipient[Parent UEI] ), FactContractTransactions )
+		formatString: #,0
+		displayFolder: Recipients
+		lineageTag: 6b1f2e8d-4c3a-4e57-9a0b-1d2e3f4a5b61
+
+	/// Card caption: "12,835 parent companies" for the period in context.
+	measure 'Parent Companies Label' =
+			VAR N = [Parent Companies]
+			RETURN
+			    IF ( NOT ISBLANK ( N ), FORMAT ( N, "#,0" ) & " parent companies" )
+		displayFolder: Report
+		lineageTag: 7c2a3f9e-5d4b-4f68-8b1c-2e3f4a5b6c72
+
+	/// Distinct recipient UEIs with at least one action where the contracting officer determined the business is small (size code S).
+	/// A recipient can also have other-than-small actions; it is counted here if any action in context is small-business.
+	measure 'Small Business Recipients' = CALCULATE ( [Recipients], DimContractType[Small Business Flag] = "Small Business" )
+		formatString: #,0
+		displayFolder: Recipients
+		lineageTag: 8d3b4a0f-6e5c-4a79-9c2d-3f4a5b6c7d83
+
+	/// Card caption: "9,805 small-business recipients" for the period in context.
+	measure 'Small Business Recipients Label' =
+			VAR N = [Small Business Recipients]
+			RETURN
+			    IF ( NOT ISBLANK ( N ), FORMAT ( N, "#,0" ) & " small-business recipients" )
+		displayFolder: Report
+		lineageTag: 9e4c5b1a-7f6d-4b8a-ad3e-4a5b6c7d8e94
+
+	/// Net Obligations divided by the number of recipient UEIs with activity in context (can be negative).
+	measure 'Avg Net Obligation per Recipient' = DIVIDE ( [Net Obligations], [Recipients] )
+		formatString: \$#,0;(\$#,0);\$#,0
+		displayFolder: Recipients
+		lineageTag: af5d6c2b-8a7e-4c9b-be4f-5b6c7d8e9fa5
+
+	/// Rank (1 = highest Net Obligations) of a recipient UEI among the UEIs in the visual's selection.
+	/// Identity = Recipient UEI (DimRecipient has one row per UEI), so recipients sharing a name are ranked separately.
+	/// ALLSELECTED ( DimRecipient ) restores every recipient column to the visual's outer selection, so the row's other
+	/// grouping columns (name, parent, HQ state) do not narrow the comparison set, while slicers still apply.
+	/// Only UEIs with activity are compared, so negative-net recipients rank last but are kept and are never pushed
+	/// down by inactive UEIs. Blank unless Recipient UEI is on the visual and has activity. Ties share a rank (SKIP).
+	/// (A RANK window-function version failed with out-of-memory errors when the visual grouped by several recipient columns.)
+	measure 'Recipient Rank (UEI)' =
+			VAR CurrentNet = [Net Obligations]
+			RETURN
+			    IF (
+			        ISINSCOPE ( DimRecipient[Recipient UEI] ) && NOT ISBLANK ( CurrentNet ),
+			        CALCULATE (
+			            RANKX (
+			                FILTER ( VALUES ( DimRecipient[Recipient UEI] ), NOT ISBLANK ( [Net Obligations] ) ),
+			                [Net Obligations],
+			                CurrentNet,
+			                DESC,
+			                SKIP
+			            ),
+			            ALLSELECTED ( DimRecipient )
+			        )
+			    )
+		formatString: #,0
+		displayFolder: Recipients
+		lineageTag: b06e7d3c-9b8f-4dac-8f50-6c7d8e9fa0b6
+
+	/// Header text for the Transaction Detail drill-through page: the recipient (with UEI) or parent company passed in.
+	measure 'Transaction Detail Context' =
+			VAR U = SELECTEDVALUE ( DimRecipient[Recipient UEI] )
+			VAR P = SELECTEDVALUE ( DimRecipient[Parent Company] )
+			RETURN
+			    SWITCH (
+			        TRUE (),
+			        NOT ISBLANK ( U ), "Recipient: " & SELECTEDVALUE ( DimRecipient[Recipient Name] ) & "  ·  UEI " & U,
+			        NOT ISBLANK ( P ), "Parent company: " & P & "  ·  " & FORMAT ( [Recipients], "#,0" ) & " recipient UEIs",
+			        "All recipients in the current filters"
+			    )
+		displayFolder: Report
+		lineageTag: c17f8e4d-0c9a-4ebd-a061-7d8e9fa0b1c7
+
+	/// Display-only: Deobligations, or $0 when the selection has transactions but no de-obligations. Blank when there is
+	/// no activity. Negative values are kept as-is. Calculations stay on Deobligations.
+	measure 'Deobligations (display)' = IF ( NOT ISBLANK ( [Transactions] ), COALESCE ( [Deobligations], 0 ) )
+		formatString: \$#,0;(\$#,0);\$#,0
+		displayFolder: Report
+		lineageTag: d28a9f5e-1dab-4fce-b172-8e9fa0b1c2d8
+
+	/// Display-only: New Awards, or 0 when the selection has transactions but no base award actions. Blank when there is no activity.
+	measure 'New Awards (display)' = IF ( NOT ISBLANK ( [Transactions] ), COALESCE ( [New Awards], 0 ) )
+		formatString: #,0
+		displayFolder: Report
+		lineageTag: e39ba06f-2ebc-4adf-8c83-9fa0b1c2d3e9
+
+	/// Card caption in full dollars for detail pages, e.g. "$12,345,678 on new awards" or "$0 on new awards".
+	/// Blank when there is no activity.
+	measure 'New Award Obligations Label ($)' =
+			IF (
+			    NOT ISBLANK ( [Transactions] ),
+			    FORMAT ( COALESCE ( [New Award Obligations], 0 ), "\$#,0;(\$#,0);\$0" ) & " on new awards"
+			)
+		displayFolder: Report
+		lineageTag: f4acb17a-3fcd-4be0-9d94-a0b1c2d3e4fa
+
+	/// Card text for Small Business Share. "n/a" when net obligations are zero or negative (a share of a non-positive
+	/// total is not meaningful); "0.0%" when net is positive but there are no small-business obligations; blank with
+	/// no activity. Text so the card can show "n/a"; the calculation stays on Small Business Share.
+	measure 'Small Business Share (display)' =
+			VAR NetObl = [Net Obligations]
+			RETURN
+			    SWITCH (
+			        TRUE (),
+			        ISBLANK ( [Transactions] ), BLANK (),
+			        ISBLANK ( NetObl ) || NetObl <= 0, "n/a",
+			        FORMAT ( COALESCE ( [Small Business Share], 0 ), "0.0%" )
+			    )
+		displayFolder: Report
+		lineageTag: a6bdc28b-40de-4cf1-8ea5-b1c2d3e4f50b
+
+	/// Card caption for Small Business Share: number of small-business recipients (0 when none), or why the share is n/a.
+	measure 'Small Business Share Caption' =
+			VAR NetObl = [Net Obligations]
+			RETURN
+			    SWITCH (
+			        TRUE (),
+			        ISBLANK ( [Transactions] ), BLANK (),
+			        ISBLANK ( NetObl ) || NetObl <= 0, "Share n/a: net obligations ≤ $0",
+			        FORMAT ( COALESCE ( [Small Business Recipients], 0 ), "#,0" ) & " small-business recipients"
+			    )
+		displayFolder: Report
+		lineageTag: b7ced39c-51ef-4d02-9fb6-c2d3e4f5061c
+
+	/// Card text for Top 10 Recipient Share. "n/a" whenever recipients are filtered (recipient search, or a parent or
+	/// recipient selected in a chart or table): concentration across vendors is not meaningful for a selected vendor.
+	/// DimRecipient is filtered only by recipient selections (single-direction relationship), so fiscal-year,
+	/// DHS component and NAICS filters keep the numeric share. Text so the card can show "n/a".
+	measure 'Top 10 Share (display)' =
+			SWITCH (
+			    TRUE (),
+			    ISBLANK ( [Transactions] ), BLANK (),
+			    ISCROSSFILTERED ( DimRecipient ), "n/a",
+			    FORMAT ( [Top 10 Recipient Share], "0.0%" )
+			)
+		displayFolder: Report
+		lineageTag: c8dfe4ad-62f0-4e13-a0a7-d3e4f506172d
+
+	/// Card caption for Top 10 Recipient Share: what the share covers, or why it is n/a.
+	measure 'Top 10 Share Caption' =
+			SWITCH (
+			    TRUE (),
+			    ISBLANK ( [Transactions] ), BLANK (),
+			    ISCROSSFILTERED ( DimRecipient ), "Recipient filter applied",
+			    "Top 10 parent companies by Parent UEI"
+			)
+		displayFolder: Report
+		lineageTag: d9e0f5be-7301-4f24-b1b8-e4f5061728e3
+
+	/// Card text for Avg Net Obligation per Recipient, scaled to K, M or B (e.g. $5.61M, $3.13B); negatives in
+	/// parentheses; $0 for zero; blank when there is no value. The exact amount stays in Avg Net Obligation per Recipient.
+	measure 'Avg Net Obligation per Recipient (display)' =
+			VAR v = [Avg Net Obligation per Recipient]
+			VAR a = ABS ( v )
+			RETURN
+			    SWITCH (
+			        TRUE (),
+			        ISBLANK ( v ), BLANK (),
+			        a >= 1e9, FORMAT ( v / 1e9, "\$#,0.00\B;(\$#,0.00\B)" ),
+			        a >= 1e6, FORMAT ( v / 1e6, "\$#,0.00\M;(\$#,0.00\M)" ),
+			        a >= 1e3, FORMAT ( v / 1e3, "\$#,0.0\K;(\$#,0.0\K)" ),
+			        FORMAT ( v, "\$#,0;(\$#,0)" )
+			    )
+		displayFolder: Report
+		lineageTag: e4a1f2b3-8c5d-4e6f-9a07-b1c2d3e4f5a6
 
 	column Placeholder
 		dataType: string

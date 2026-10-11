@@ -11,8 +11,8 @@ definition is human-readable and version-controlled.
 | Scope | DHS prime contract transactions, action dates 2022-10-01 to 2025-09-30 |
 | Volume | 169,336 transactions · 85,027 awards · 13,522 recipients |
 | Net obligations | **$75.84B** (FY2023 $23.90B · FY2024 $23.60B · FY2025 $28.34B) |
-| Model | Star schema: 1 fact table, 7 dimensions, 45 measures |
-| Status | Semantic model reconciled to source; Executive Overview page in review, three more pages planned |
+| Model | Star schema: 1 fact table, 7 dimensions, 60 measures |
+| Status | Executive Overview approved; Contractor Analysis and Transaction Detail (drill-through) in review; two more pages planned |
 
 ---
 
@@ -91,7 +91,7 @@ There are no bidirectional or many-to-many relationships and no dimension-to-dim
 | **FactContractTransactions** | One row per contract action · `Transaction Key` | 169,336 | `Federal Action Obligation` kept with its sign; `Is Base Action` flag; award ID, modification number, description and USAspending link as degenerate attributes |
 | **DimDate** | Day · `Date` | 1,096 | DAX calculated table, marked as date table. Federal fiscal year: Oct 1 – Sep 30 (Q1 = Oct–Dec). Range follows the data, padded to whole fiscal years |
 | **DimAgency** | Awarding office · `sub-agency code \| office code` | 113 | Agency → Sub-Agency → Office hierarchy |
-| **DimRecipient** | Recipient UEI | 13,523 | Latest reported name/parent/location (Type 1). A recipient with no reported parent is its own parent |
+| **DimRecipient** | Recipient UEI | 13,523 | Latest reported name/parent/location (Type 1). A recipient with no reported parent is its own parent. `Parent Company` = unique label per Parent UEI; `HQ State` = headquarters state or "Not reported / non-US" |
 | **DimNAICS** | 6-digit NAICS code | 808 | Latest description per code; 20 NAICS sectors (Sector → NAICS hierarchy) |
 | **DimPSC** | Product/Service Code | 1,513 | Latest description; PSC Type = Product / Service / Research and Development |
 | **DimPlaceOfPerformance** | Country + state · `country \| state` | 128 | Domestic / Foreign → Country → State |
@@ -148,11 +148,22 @@ All measures live in `_Measures`, grouped into display folders.
 | | Continuing Award Obligations | Net obligations recorded on modifications of existing awards (options, funding actions, changes, de-obligations). New + Continuing = Net |
 | | Report Subtitle | Fiscal years in context + "net obligations = binding commitments net of de-obligations, not outlays" |
 | | YoY Label | Card caption: "▲ +20.1% vs FY2024" when one fiscal year with a prior year is selected; otherwise explains why no comparison is shown |
-| | Deob Rate Label | Card caption: "9.3% de-obligation rate" for the period in context |
+| | Deob Rate Label | Card caption: "9.3% de-obligation rate"; "0.0%" when there is activity but no de-obligations; "Rate n/a: no positive obligations" when gross obligations are zero; blank with no activity |
+| | Deobligations (display) / New Awards (display) | Show $0 / 0 instead of blank when the selection has transactions but none of these; blank with no activity. Calculations stay on the base measures |
+| | Small Business Share (display) / Caption | Card text: "n/a" and "Share n/a: net obligations ≤ $0" when net ≤ $0 (a share of a non-positive total is not meaningful); "0.0%" / "0 small-business recipients" when net is positive but none are small; blank with no activity |
+| | Top 10 Share (display) / Caption | Card text: "n/a" with the caption "Recipient filter applied" whenever recipients are filtered (search slicer or a parent/recipient selected in a visual), because concentration across vendors is not meaningful for a selected vendor; fiscal-year, DHS component and NAICS filters keep the numeric share |
+| | Avg Net Obligation per Recipient (display) | Card text scaled to K/M/B (e.g. $5.61M, $3.13B, ($45.37M)); $0 for zero, blank with no value. Hovering the card shows the hidden report-page tooltip *Avg per Recipient Tooltip* (300 × 140) with the exact `Avg Net Obligation per Recipient`, `Net Obligations` and `Recipients` for the same filters; the classic card ignores tooltip fields, so a tooltip page is used |
+| | New Award Obligations Label ($) | Full-dollar caption for detail pages, e.g. "$0 on new awards" |
 | | New Award Obligations Label | Card caption: "$34.14B on new awards" for the period in context (same $B format as the report) |
 | | Net Obligations Color | Blue (#2A6BC2) when net ≥ 0, rust (#C8553D) when negative; used for sign-aware bar colors |
 | | Data Source Label | Footer: source, extract date and the obligations-vs-outlays caveat |
 | Report › Display ($B) | Net / Gross / Deobligations / New Award Obligations **($B)** | Display-only numeric measures: the base measure ÷ 1,000,000,000, formatted `$23.90B` (negatives `($1.79B)`). Used for cards, tables and chart labels so every amount on the report reads in billions with two decimals; calculations stay on the base measures |
+| Recipients | Parent Companies | Distinct Parent UEIs with activity in context (12,835 overall) |
+| | Small Business Recipients | Recipient UEIs with at least one small-business action (9,805 overall) |
+| | Avg Net Obligation per Recipient | Net Obligations ÷ Recipients ($5,608,603 overall) |
+| | Recipient Rank (UEI) | Rank by net obligations among UEIs in the visual's selection; blank for UEIs without activity |
+| Report | Parent Companies Label / Small Business Recipients Label | KPI captions |
+| | Transaction Detail Context | Drill-through header: the recipient (with UEI) or parent company passed in |
 | Data Quality | DQ … | Duplicate keys, orphan keys, New Awards definition checks, unknown-member shares, de-obligation rows, date range |
 
 ### KPI definitions and their limits
@@ -172,11 +183,35 @@ All measures live in `_Measures`, grouped into display folders.
   Blank offer counts come only from delivery orders and BPA calls, whose offers are reported on the
   parent contract (IDV); they are excluded rather than treated as zero. No zero or out-of-range values
   exist in this extract (maximum 149).
-- **Recipient identity.** `Recipients` counts UEIs; `Recipient Rank` ranks by recipient *name*
-  (204 names are shared by more than one UEI, e.g. LEIDOS, INC. with 12); `Top 10 Recipient Share`
-  groups by *parent UEI* (company family). Ties at rank 10 can include more than 10 parents.
 - **Recipient attributes are Type 1.** Each UEI shows its most recent name, parent and location; history
   is not kept.
+
+### Recipient identity rules
+
+| Concept | Identity | Used by |
+|---|---|---|
+| Recipient | **Recipient UEI** (13,522) | `Recipients`, `Recipient Rank (UEI)`, recipient table, drill-through |
+| Parent company | **Parent UEI** (12,835) | `Parent Companies`, `Top 10 Recipient Share`, Top 10 parent companies chart, drill-through |
+| Parent display label | `DimRecipient[Parent Company]`: parent name, plus the Parent UEI in parentheses when another Parent UEI has the same name | Charts and tables that group by parent |
+| Recipient name | Display only | `Recipient Rank` (legacy, name-based) |
+
+- **Missing parent UEI.** 497 transactions have no parent UEI. Recipient attributes come from each UEI's
+  latest transaction; 75 UEIs have no parent there and are treated as **their own parent** (4 of them reported
+  a parent on an earlier transaction, which Type 1 overwrites).
+- **Names are not identities.** Each Parent UEI has one consistent name, but 262 Parent UEIs share a name with
+  another (compared case-insensitively, as Power BI groups text), e.g. *SECURITAS AB*, *GENERAL DYNAMICS CORP*.
+  Grouping by name would merge different companies, so parent visuals use `Parent Company`, which appends the
+  UEI to those 262 labels. 204 recipient names are also shared by more than one UEI, so recipients are ranked
+  and drilled by UEI.
+- **Negative net recipients are kept.** 1,193 UEIs have negative net obligations (de-obligations exceed new
+  obligations). They stay in every table and rank last; `Recipient Rank (UEI)` compares only UEIs with activity
+  in the current filters, so inactive UEIs never distort the ranks. The rank uses `RANKX` over the whole
+  recipient selection (`ALLSELECTED ( DimRecipient )`), so extra recipient columns on a table (name, parent,
+  state) do not change the comparison set.
+- **Small-business recipients** are UEIs with at least one action the contracting officer classified as small
+  (9,805). A recipient can also have other-than-small actions.
+- **HQ State** is the recipient's registered headquarters, not the place of performance. 161 UEIs (about
+  $0.15B) have no US state on record and appear as "Not reported / non-US".
 
 ## Validation
 

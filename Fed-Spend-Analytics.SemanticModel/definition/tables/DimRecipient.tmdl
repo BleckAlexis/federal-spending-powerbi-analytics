@@ -61,6 +61,26 @@ table DimRecipient
 
 		annotation SummarizationSetBy = Automatic
 
+	/// Display label that is unique per Parent UEI: the parent name, followed by the Parent UEI in parentheses when
+	/// another Parent UEI has the same name (case-insensitive; 262 of 12,835 parents). Use this, not Parent Name,
+	/// to group or rank parent companies so distinct companies are never merged.
+	column 'Parent Company'
+		dataType: string
+		lineageTag: 3c7e9a41-6b2d-4f8e-a915-0d4c6e8b2f17
+		summarizeBy: none
+		sourceColumn: Parent Company
+
+		annotation SummarizationSetBy = Automatic
+
+	/// Recipient headquarters state for display; "Not reported / non-US" when no state is reported (foreign or missing).
+	column 'HQ State'
+		dataType: string
+		lineageTag: 5e9f0b63-8d4f-4a10-b137-2f6e8a0d4139
+		summarizeBy: none
+		sourceColumn: HQ State
+
+		annotation SummarizationSetBy = Automatic
+
 	hierarchy 'Recipient Hierarchy'
 		lineageTag: e06fe2c8-6fce-444c-a989-ce4a4649410b
 
@@ -86,9 +106,25 @@ table DimRecipient
 				        #"Parent UEI" = if _[#"Parent UEI"] = "" then _[#"Recipient UEI"] else _[#"Parent UEI"],
 				        #"Parent Name" = if _[#"Parent Name"] = "" then _[#"Recipient Name"] else _[#"Parent Name"]
 				    ])),
-				    Typed = Table.TransformColumnTypes(SelfParent, List.Transform(Table.ColumnNames(SelfParent), each {_, type text}))
+				    Typed = Table.TransformColumnTypes(SelfParent, List.Transform(Table.ColumnNames(SelfParent), each {_, type text})),
+				    // Parent Company: unique label per Parent UEI. Names are compared case-insensitively because
+				    // Power BI groups text case-insensitively; shared names get the Parent UEI appended.
+				    ParentPairs = Table.Distinct(Table.SelectColumns(Typed, {"Parent UEI", "Parent Name"})),
+				    WithNameKey = Table.AddColumn(ParentPairs, "NameKey", each Text.Upper(Text.Trim([Parent Name])), type text),
+				    NameCounts = Table.Group(WithNameKey, {"NameKey"}, {{"ParentsWithName", each Table.RowCount(_), Int64.Type}}),
+				    WithCounts = Table.ExpandTableColumn(
+				        Table.NestedJoin(WithNameKey, {"NameKey"}, NameCounts, {"NameKey"}, "NC", JoinKind.LeftOuter),
+				        "NC", {"ParentsWithName"}),
+				    ParentLabels = Table.AddColumn(WithCounts, "Parent Company",
+				        each if [ParentsWithName] > 1 then [Parent Name] & " (" & [Parent UEI] & ")" else [Parent Name],
+				        type text),
+				    WithParentCompany = Table.ExpandTableColumn(
+				        Table.NestedJoin(Typed, {"Parent UEI", "Parent Name"}, ParentLabels, {"Parent UEI", "Parent Name"}, "PL", JoinKind.LeftOuter),
+				        "PL", {"Parent Company"}),
+				    WithHQState = Table.AddColumn(WithParentCompany, "HQ State",
+				        each if [Recipient State] = "" then "Not reported / non-US" else [Recipient State], type text)
 				in
-				    Typed
+				    WithHQState
 
 	annotation PBI_ResultType = Table
 

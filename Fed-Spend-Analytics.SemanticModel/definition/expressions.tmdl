@@ -126,7 +126,10 @@ expression fnLatestByKey =
 		// transaction (Type 1), plus exactly one explicit UNKNOWN member.
 		(Source as table, KeyColumn as text, SourceColumns as list, OutputNames as list, UnknownValues as list) as table =>
 		let
-		    Grouped = Table.Group(Source, {KeyColumn}, {{"Latest", each Table.Max(_, "action_date"), type record}}),
+		    // Keep only the key, the date that picks the latest row, and the attributes this dimension returns.
+		    // Table.SelectColumns keeps the row order of Source, so Table.Max resolves ties exactly as before.
+		    Narrow = Table.SelectColumns(Source, List.Distinct({KeyColumn, "action_date"} & SourceColumns)),
+		    Grouped = Table.Group(Narrow, {KeyColumn}, {{"Latest", each Table.Max(_, "action_date"), type record}}),
 		    Expanded = Table.ExpandRecordColumn(Grouped, "Latest", SourceColumns, OutputNames),
 		    Known = Table.SelectRows(Expanded, each Record.Field(_, KeyColumn) <> "UNKNOWN"),
 		    Unknown = #table(Table.ColumnNames(Known), {{"UNKNOWN"} & UnknownValues}),

@@ -549,6 +549,92 @@ table _Measures
 		displayFolder: Report
 		lineageTag: e4a1f2b3-8c5d-4e6f-9a07-b1c2d3e4f5a6
 
+	/// Change in Net Obligations vs. the prior fiscal year, in billions (numeric). Blank unless one fiscal year with a prior year is in context.
+	/// Same $B approach as the other display measures (fixed decimal: $100,000 precision); shown as +$4.73B / -$0.29B.
+	measure 'Net Obligations YoY ($B)' = DIVIDE ( [Net Obligations YoY], 1000000000 )
+		formatString: +\$#,0.00\B;-\$#,0.00\B;\$0.00\B
+		displayFolder: Report\Display ($B)
+		lineageTag: 1a7c3e9b-2d4f-4a6b-8c1e-3f5a7b9c1d21
+
+	/// Net Obligations for the same period one fiscal year earlier, in billions (numeric), for the monthly prior-year line on the $B axis.
+	measure 'Net Obligations PY ($B)' = DIVIDE ( [Net Obligations PY], 1000000000 )
+		formatString: \$#,0.00\B;(\$#,0.00\B);\$#,0.00\B
+		displayFolder: Report\Display ($B)
+		lineageTag: 2b8d4fac-3e5a-4b7c-9d2f-4a6b8cad2e32
+
+	/// Share of the fiscal year's net obligations recorded in September (fiscal month 12), the fiscal year-end surge.
+	/// Ignores month, quarter and date filters but keeps the fiscal year(s) and all non-date filters. Blank when net is not positive.
+	measure 'Year-End Share' =
+			VAR FiscalYearNet =
+			    CALCULATE ( [Net Obligations], ALLEXCEPT ( DimDate, DimDate[Fiscal Year Number], DimDate[Fiscal Year] ) )
+			VAR SeptemberNet =
+			    CALCULATE (
+			        [Net Obligations],
+			        ALLEXCEPT ( DimDate, DimDate[Fiscal Year Number], DimDate[Fiscal Year] ),
+			        DimDate[Fiscal Month Number] = 12
+			    )
+			RETURN
+			    IF ( FiscalYearNet > 0, DIVIDE ( SeptemberNet, FiscalYearNet ) )
+		formatString: 0.0%
+		displayFolder: Agency
+		lineageTag: 3c9e5abd-4f6b-4c8d-ae3a-5b7c9dbe3f43
+
+	/// Awarding offices (DimAgency rows, office grain) with at least one transaction in context. Awarding agency, not funding agency.
+	measure 'Awarding Offices' = CALCULATE ( DISTINCTCOUNT ( DimAgency[AgencyKey] ), FactContractTransactions )
+		formatString: #,0
+		displayFolder: Agency
+		lineageTag: 4dafa6ce-5a7c-4d9e-bf4b-6c8daecf4a54
+
+	/// DHS awarding components (sub-agencies) with at least one transaction in context.
+	measure 'Active Components' = CALCULATE ( DISTINCTCOUNT ( DimAgency[Sub-Agency Name] ), FactContractTransactions )
+		formatString: #,0
+		displayFolder: Agency
+		lineageTag: 5eb0b7df-6b8d-4eaf-80c5-7d9ebfd05b65
+
+	/// Card caption for Awarding Offices, e.g. "across 10 DHS components".
+	measure 'Awarding Offices Label' =
+			VAR N = [Active Components]
+			RETURN IF ( NOT ISBLANK ( N ), "across " & FORMAT ( N, "#,0" ) & " DHS components" )
+		displayFolder: Report
+		lineageTag: 6fc1c8e0-7c9e-4fb0-91d6-8eafc0e16c76
+
+	/// Conditional-formatting color for year-over-year change: teal for growth, rust for decline; blank when there is no comparison.
+	measure 'YoY Change Color' =
+			VAR Chg = [Net Obligations YoY]
+			RETURN IF ( NOT ISBLANK ( Chg ), IF ( Chg < 0, "#C8553D", "#13A398" ) )
+		displayFolder: Report
+		lineageTag: 7ad2d9f1-8daf-4ac1-a2e7-9fb0d1f27d87
+
+	/// Competed Share for matrix rows (net-based, same definition as Competed Share).
+	/// Blank when net obligations are zero or negative, or when the share falls outside 0-100% (e.g. an office whose only
+	/// actions in the category are de-obligations on older awards). 0% and 100% are kept. Numeric, so sorting works.
+	measure 'Competed Share (positive net)' =
+			VAR NetObl = [Net Obligations]
+			VAR Share = [Competed Share]
+			RETURN
+			    IF ( NetObl > 0 && Share >= 0 && Share <= 1, Share )
+		formatString: 0.0%
+		displayFolder: Mix\Safe (positive net)
+		lineageTag: 8be3ea02-9eb0-4bd2-b3f8-a0c1e2038e98
+
+	/// Small Business Share for matrix rows (net-based, same definition as Small Business Share).
+	/// Blank when net obligations are zero or negative, or when the share falls outside 0-100% (e.g. an office whose only
+	/// actions in the category are de-obligations on older awards). 0% and 100% are kept. Numeric, so sorting works.
+	measure 'Small Business Share (positive net)' =
+			VAR NetObl = [Net Obligations]
+			VAR Share = [Small Business Share]
+			RETURN
+			    IF ( NetObl > 0 && Share >= 0 && Share <= 1, Share )
+		formatString: 0.0%
+		displayFolder: Mix\Safe (positive net)
+		lineageTag: 9cf4fb13-afc1-4ce3-84a9-b1d2f3149fa9
+
+	/// Net Obligations YoY %, blank when prior-year net obligations are zero, negative or absent (a % change from a non-positive base is meaningless).
+	measure 'Net Obligations YoY % (positive PY)' = IF ( [Net Obligations PY] > 0, [Net Obligations YoY %] )
+		formatString: 0.0%
+		displayFolder: Mix\Safe (positive net)
+		lineageTag: ad05ac24-b0d2-4df4-95ba-c2e3a425a0ba
+
 	column Placeholder
 		dataType: string
 		isHidden

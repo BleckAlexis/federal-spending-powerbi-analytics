@@ -11,8 +11,8 @@ definition is human-readable and version-controlled.
 | Scope | DHS prime contract transactions, action dates 2022-10-01 to 2025-09-30 |
 | Volume | 169,336 transactions · 85,027 awards · 13,522 recipients |
 | Net obligations | **$75.84B** (FY2023 $23.90B · FY2024 $23.60B · FY2025 $28.34B) |
-| Model | Star schema: 1 fact table, 7 dimensions, 60 measures |
-| Status | Executive Overview approved; Contractor Analysis and Transaction Detail (drill-through) in review; two more pages planned |
+| Model | Star schema: 1 fact table, 7 dimensions, 70 measures |
+| Status | Executive Overview, Contractor Analysis and Transaction Detail complete; Agency Performance in progress (KPIs and component/office matrix built); Contract & Competition planned |
 
 ---
 
@@ -157,13 +157,19 @@ All measures live in `_Measures`, grouped into display folders.
 | | New Award Obligations Label | Card caption: "$34.14B on new awards" for the period in context (same $B format as the report) |
 | | Net Obligations Color | Blue (#2A6BC2) when net ≥ 0, rust (#C8553D) when negative; used for sign-aware bar colors |
 | | Data Source Label | Footer: source, extract date and the obligations-vs-outlays caveat |
-| Report › Display ($B) | Net / Gross / Deobligations / New Award Obligations **($B)** | Display-only numeric measures: the base measure ÷ 1,000,000,000, formatted `$23.90B` (negatives `($1.79B)`). Used for cards, tables and chart labels so every amount on the report reads in billions with two decimals; calculations stay on the base measures |
+| Report › Display ($B) | Net / Gross / Deobligations / New Award Obligations / Net Obligations PY **($B)**; Net Obligations YoY ($B) | Display-only numeric measures: the base measure ÷ 1,000,000,000, formatted `$23.90B` (negatives `($1.79B)`; YoY as `+$4.73B` / `-$0.29B`). Used for cards, tables and chart labels so every amount on the report reads in billions with two decimals; calculations stay on the base measures. **Precision:** `Federal Action Obligation` is a fixed-decimal (currency) column, so a $B value keeps 4 decimal places ($100,000 precision, e.g. 28.3372 for $28,337,153,017.36); every displayed 2-decimal value equals the exact amount rounded, and exact amounts remain in the full-dollar measures |
 | Recipients | Parent Companies | Distinct Parent UEIs with activity in context (12,835 overall) |
 | | Small Business Recipients | Recipient UEIs with at least one small-business action (9,805 overall) |
 | | Avg Net Obligation per Recipient | Net Obligations ÷ Recipients ($5,608,603 overall) |
 | | Recipient Rank (UEI) | Rank by net obligations among UEIs in the visual's selection; blank for UEIs without activity |
 | Report | Parent Companies Label / Small Business Recipients Label | KPI captions |
 | | Transaction Detail Context | Drill-through header: the recipient (with UEI) or parent company passed in |
+| Agency | Year-End Share | Share of the fiscal year's net obligations recorded in September (fiscal month 12). Ignores month/quarter filters, keeps the fiscal year and all other filters; blank when net ≤ $0 (FY2025: 42.7%) |
+| | Awarding Offices / Active Components | Awarding offices / DHS components with at least one action in context (FY2025: 107 offices, 10 components; 112 offices across all years) |
+| Report | Awarding Offices Label | Caption "across N DHS components" |
+| | YoY Change Color | Teal when the change vs prior year is ≥ 0, rust when negative; blank without a comparison |
+| Mix › Safe (positive net) | Competed Share (positive net) / Small Business Share (positive net) | Same net-based definitions as the base shares, for office-level matrix rows: **blank when net obligations are ≤ $0 or when the share falls outside 0–100%** (0% and 100% are kept) |
+| | Net Obligations YoY % (positive PY) | Net Obligations YoY %, blank when prior-year net obligations are ≤ $0 or absent |
 | Data Quality | DQ … | Duplicate keys, orphan keys, New Awards definition checks, unknown-member shares, de-obligation rows, date range |
 
 ### KPI definitions and their limits
@@ -212,6 +218,28 @@ All measures live in `_Measures`, grouped into display folders.
   (9,805). A recipient can also have other-than-small actions.
 - **HQ State** is the recipient's registered headquarters, not the place of performance. 161 UEIs (about
   $0.15B) have no US state on record and appear as "Not reported / non-US".
+
+## Agency Performance page
+
+Shows DHS contract obligations by **awarding** agency: the DHS component and office that signed each contract
+action. It is **not** a funding-agency view; funding agency is not in the model (the funding columns are not exported
+by `prepare_data.py`).
+
+- **Comparison year:** a single-select fiscal-year slicer saved with **FY2025** selected by default. It is deliberately
+  **not** in the synced fiscal-year group, so year-over-year KPIs always have exactly one year; fiscal-year choices on the
+  other pages do not change it. Clearing it shows all years, where year-over-year values are blank by design.
+- **DHS component slicer:** synced with the other pages.
+- **KPIs (FY2025):** net obligations $28.34B (▲ +20.1% vs FY2024) · change vs prior year +$4.73B · year-end
+  (September) share 42.7% · de-obligation rate 9.3% · competed share 91.0% · 107 awarding offices across 10 components.
+- **Component → awarding office matrix:** net obligations ($B, blue data bars, rust text when negative), share of total,
+  YoY %, de-obligation rate, competed share, small business share and new awards.
+- **Blank shares in the matrix:** net-based shares are left blank where net obligations are ≤ $0, or where a share would
+  fall outside 0–100% because de-obligations on older awards outweigh new obligations in that category. Example: CBP
+  office 70B05C in FY2025 had $769,773 net obligations but only competed **de-obligations** (−$61,764), giving a
+  mathematically correct but meaningless −8.0% competed share. In FY2025 this blanks 5 office competed shares and 4 office
+  small-business shares; YoY % is blank where prior-year net obligations are ≤ $0.
+- **Context (FY2025):** CBP grew +$4.41B (+76.4%); TSA, the Office of Procurement Operations, FEMA, USCIS, the OIG and
+  the Secret Service declined. September 2025 alone accounted for $12.09B of $28.34B.
 
 ## Validation
 

@@ -21,6 +21,11 @@ data/processed/
 # Allow small, curated sample files for reviewers, if added later
 !data/sample/
 !data/sample/*.csv
+# Explicit, case-exact exclusion of the local Data/ folder (Data/Raw, Data/Processed), so it stays
+# ignored on case-sensitive systems too. Data/* (not Data/) keeps the sample-folder exception working.
+Data/*
+!Data/sample/
+!Data/sample/*.csv
 
 # ---- Credentials & environment files ------------------------
 .env

@@ -60,21 +60,6 @@
                       "Entity": "_Measures"
                     }
                   },
-                  "Property": "Small Business Share"
-                }
-              },
-              "queryRef": "_Measures.Small Business Share",
-              "nativeQueryRef": "Small Business Share",
-              "displayName": "Small business share (FY)"
-            },
-            {
-              "field": {
-                "Measure": {
-                  "Expression": {
-                    "SourceRef": {
-                      "Entity": "_Measures"
-                    }
-                  },
                   "Property": "Recipients"
                 }
               },

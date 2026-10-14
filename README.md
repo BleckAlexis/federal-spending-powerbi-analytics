@@ -173,7 +173,7 @@ All measures live in `_Measures`, grouped into display folders.
 | | Net Obligations YoY % (positive PY) | Net Obligations YoY %, blank when prior-year net obligations are ≤ $0 or absent |
 | Competition | Not Competed Obligations / ($B) | Net obligations on not-competed actions (extent competed B, C, E, G, NDO). `KEEPFILTERS`, so it intersects with a competition selection (blank when only competed actions are selected); net, so it can be negative (FY2025: $2.54B) |
 | | Firm Fixed Price Share | Net obligations on firm-fixed-price actions (pricing code J) ÷ Net Obligations; `KEEPFILTERS`, so it is blank when another pricing type is selected (FY2025: 77.6%) |
-| Report | Single-Offer Rate (display) / Single-Offer Caption | Card text "29.3%" and caption "2,646 of 9,028 competed new awards"; "n/a" when the selection has activity but no competed new award reports an offer count; blank with no activity |
+| Report | Single-Offer Rate (display) / Single-Offer Caption | Card text "29.3%" and caption "2,646 / 9,028 competed awards" (single-offer / eligible competed new awards); "n/a" when the selection has activity but no competed new award reports an offer count; blank with no activity |
 | Data Quality | DQ … | Duplicate keys, orphan keys, New Awards definition checks, unknown-member shares, de-obligation rows, date range |
 
 ### KPI definitions and their limits
@@ -223,6 +223,16 @@ All measures live in `_Measures`, grouped into display folders.
 - **HQ State** is the recipient's registered headquarters, not the place of performance. 161 UEIs (about
   $0.15B) have no US state on record and appear as "Not reported / non-US".
 
+### Contractor Analysis interactions
+
+- **Business-size chart → Small Business Share card.** Selecting a segment of *Small vs. other-than-small business*
+  does not filter the Small Business Share card or its caption. `Small Business Share` and `Small Business Recipients`
+  replace a Small Business Flag selection, so an "Other Than Small" selection would otherwise show small-business ÷
+  other-than-small obligations (59.7% across all years) instead of a share. The card keeps showing the share for the
+  slicer selection (37.4% all years, 33.4% FY2025); the other KPI cards and charts still respond to the selection.
+- The chart's tooltip shows recipient UEIs only; a small-business share evaluated inside a single business-size
+  segment would always read 100% (small) or small ÷ other-than-small, so it is not shown there.
+
 ## Agency Performance page
 
 Shows DHS contract obligations by **awarding** agency: the DHS component and office that signed each contract
@@ -251,8 +261,8 @@ by `prepare_data.py`).
 How DHS buys: competition, contract vehicle, pricing and small-business set-asides. Fiscal-year and DHS component
 slicers are synced with the other pages.
 
-- **KPIs (FY2025):** competed share 91.0% · not competed $2.54B · single-offer rate 29.3% (2,646 of 9,028 competed new
-  awards) · small business share 33.4% · set-aside share 11.6% · firm-fixed-price share 77.6%.
+- **KPIs (FY2025):** competed share 91.0% · not competed $2.54B · single-offer rate 29.3% (2,646 / 9,028 competed
+  new awards) · small business share 33.4% · set-aside share 11.6% · firm-fixed-price share 77.6%.
 - **Charts:** net obligations by extent competed; contract vehicle (award type) and by product/service type, each split
   into competed (teal), not competed (gold) and not reported (grey); top 10 parent companies by not-competed net
   obligations; top 5 set-aside types; top 5 pricing types.

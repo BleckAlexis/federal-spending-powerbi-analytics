@@ -687,12 +687,13 @@ table _Measures
 		displayFolder: Report
 		lineageTag: 09e9d633-b86b-4779-b76c-616ed4042b75
 
-	/// Card caption for Single-Offer Rate: "2,646 of 9,028 competed new awards"; blank when no competed new award reports offers.
+	/// Card caption for Single-Offer Rate: "2,646 / 9,028 competed awards" (single-offer / eligible competed new awards);
+	/// blank when no competed new award reports offers. Short form so the all-years caption fits the KPI tile.
 	measure 'Single-Offer Caption' =
 			VAR Eligible = [Single-Offer Eligible Awards]
 			VAR Single = COALESCE ( [Single-Offer Awards], 0 )
 			RETURN
-			    IF ( Eligible > 0, FORMAT ( Single, "#,0" ) & " of " & FORMAT ( Eligible, "#,0" ) & " competed new awards" )
+			    IF ( Eligible > 0, FORMAT ( Single, "#,0" ) & " / " & FORMAT ( Eligible, "#,0" ) & " competed awards" )
 		displayFolder: Report
 		lineageTag: 5f1cd469-0b05-4a51-bf1c-04a01288a1a9
 

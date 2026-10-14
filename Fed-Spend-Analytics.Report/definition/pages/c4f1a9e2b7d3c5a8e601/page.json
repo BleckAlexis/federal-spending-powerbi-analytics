@@ -47,5 +47,17 @@
         }
       }
     ]
-  }
+  },
+  "visualInteractions": [
+    {
+      "source": "ca_col_business_size",
+      "target": "ca_kpi_small_business_value",
+      "type": "NoFilter"
+    },
+    {
+      "source": "ca_col_business_size",
+      "target": "ca_kpi_small_business_caption",
+      "type": "NoFilter"
+    }
+  ]
 }

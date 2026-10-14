@@ -23,11 +23,11 @@
                       "Entity": "_Measures"
                     }
                   },
-                  "Property": "Net Obligations YoY ($B)"
+                  "Property": "Net Obligations YoY ($B) (display)"
                 }
               },
-              "queryRef": "_Measures.Net Obligations YoY ($B)",
-              "nativeQueryRef": "Net Obligations YoY ($B)",
+              "queryRef": "_Measures.Net Obligations YoY ($B) (display)",
+              "nativeQueryRef": "Net Obligations YoY ($B) (display)",
               "displayName": "Change vs prior year"
             }
           ]

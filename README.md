@@ -11,8 +11,8 @@ definition is human-readable and version-controlled.
 | Scope | DHS prime contract transactions, action dates 2022-10-01 to 2025-09-30 |
 | Volume | 169,336 transactions · 85,027 awards · 13,522 recipients |
 | Net obligations | **$75.84B** (FY2023 $23.90B · FY2024 $23.60B · FY2025 $28.34B) |
-| Model | Star schema: 1 fact table, 7 dimensions, 70 measures |
-| Status | Executive Overview, Contractor Analysis and Transaction Detail complete; Agency Performance in progress (KPIs and component/office matrix built); Contract & Competition planned |
+| Model | Star schema: 1 fact table, 7 dimensions, 71 measures |
+| Status | Executive Overview, Contractor Analysis and Transaction Detail complete; Agency Performance complete (Phases 1 and 2: KPIs, component/office matrix, change-by-component, monthly and competition charts); Contract & Competition planned |
 
 ---
 
@@ -153,6 +153,7 @@ All measures live in `_Measures`, grouped into display folders.
 | | Small Business Share (display) / Caption | Card text: "n/a" and "Share n/a: net obligations ≤ $0" when net ≤ $0 (a share of a non-positive total is not meaningful); "0.0%" / "0 small-business recipients" when net is positive but none are small; blank with no activity |
 | | Top 10 Share (display) / Caption | Card text: "n/a" with the caption "Recipient filter applied" whenever recipients are filtered (search slicer or a parent/recipient selected in a visual), because concentration across vendors is not meaningful for a selected vendor; fiscal-year, DHS component and NAICS filters keep the numeric share |
 | | Avg Net Obligation per Recipient (display) | Card text scaled to K/M/B (e.g. $5.61M, $3.13B, ($45.37M)); $0 for zero, blank with no value. Hovering the card shows the hidden report-page tooltip *Avg per Recipient Tooltip* (300 × 140) with the exact `Avg Net Obligation per Recipient`, `Net Obligations` and `Recipients` for the same filters; the classic card ignores tooltip fields, so a tooltip page is used |
+| | Net Obligations YoY ($B) (display) | Card text for the Agency Performance "Change vs prior year" KPI: "+$4.73B" / "-$0.29B", same format as `Net Obligations YoY ($B)`; **"N/A"** when there is no prior-year comparison (FY2023, or no single fiscal year selected). The sign comes from the unrounded change, so a change under $5M still shows its direction ("+$0.00B" / "-$0.00B"). Charts and calculations stay on the numeric measure |
 | | New Award Obligations Label ($) | Full-dollar caption for detail pages, e.g. "$0 on new awards" |
 | | New Award Obligations Label | Card caption: "$34.14B on new awards" for the period in context (same $B format as the report) |
 | | Net Obligations Color | Blue (#2A6BC2) when net ≥ 0, rust (#C8553D) when negative; used for sign-aware bar colors |
@@ -231,6 +232,7 @@ by `prepare_data.py`).
 - **DHS component slicer:** synced with the other pages.
 - **KPIs (FY2025):** net obligations $28.34B (▲ +20.1% vs FY2024) · change vs prior year +$4.73B · year-end
   (September) share 42.7% · de-obligation rate 9.3% · competed share 91.0% · 107 awarding offices across 10 components.
+  The change card shows **N/A** for FY2023 (no FY2022 data in the dataset) and when no single comparison year is selected.
 - **Component → awarding office matrix:** net obligations ($B, blue data bars, rust text when negative), share of total,
   YoY %, de-obligation rate, competed share, small business share and new awards.
 - **Blank shares in the matrix:** net-based shares are left blank where net obligations are ≤ $0, or where a share would

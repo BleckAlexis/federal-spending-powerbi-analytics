@@ -556,6 +556,22 @@ table _Measures
 		displayFolder: Report\Display ($B)
 		lineageTag: 1a7c3e9b-2d4f-4a6b-8c1e-3f5a7b9c1d21
 
+	/// Card text for Net Obligations YoY ($B): "+$4.73B" / "-$0.29B", same rounding as the numeric measure; "N/A" when there
+	/// is no prior-year comparison (FY2023, or no single fiscal year selected). The sign comes from the unrounded value, so a
+	/// change under $5M still shows its direction (+$0.00B / -$0.00B). Text so the card can show "N/A"; charts and
+	/// calculations stay on Net Obligations YoY ($B).
+	measure 'Net Obligations YoY ($B) (display)' =
+			VAR v = [Net Obligations YoY ($B)]
+			RETURN
+			    SWITCH (
+			        TRUE (),
+			        ISBLANK ( v ), "N/A",
+			        v = 0, "$0.00B",
+			        IF ( v > 0, "+", "-" ) & FORMAT ( ABS ( v ), "\$#,0.00\B" )
+			    )
+		displayFolder: Report
+		lineageTag: 5de5d244-638b-4d0d-9e77-e760db23a97a
+
 	/// Net Obligations for the same period one fiscal year earlier, in billions (numeric), for the monthly prior-year line on the $B axis.
 	measure 'Net Obligations PY ($B)' = DIVIDE ( [Net Obligations PY], 1000000000 )
 		formatString: \$#,0.00\B;(\$#,0.00\B);\$#,0.00\B

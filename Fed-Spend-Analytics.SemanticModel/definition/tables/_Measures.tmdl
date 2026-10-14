@@ -651,6 +651,51 @@ table _Measures
 		displayFolder: Mix\Safe (positive net)
 		lineageTag: ad05ac24-b0d2-4df4-95ba-c2e3a425a0ba
 
+	/// Net Obligations on actions whose extent competed is not competitive (codes B, C, E, G, NDO; Competition Status
+	/// = "Not Competed"). KEEPFILTERS intersects with a user's competition selection instead of replacing it, so it is
+	/// blank when only competed actions are selected. Net of de-obligations, so it can be negative.
+	measure 'Not Competed Obligations' = CALCULATE ( [Net Obligations], KEEPFILTERS ( DimContractType[Competition Status] = "Not Competed" ) )
+		formatString: \$#,0;(\$#,0);\$#,0
+		displayFolder: Mix
+		lineageTag: 6b4821e0-ac8c-4833-9da5-801d936a84d6
+
+	/// Display-only: Not Competed Obligations in billions (numeric), same $B format as the other display measures.
+	measure 'Not Competed Obligations ($B)' = DIVIDE ( [Not Competed Obligations], 1000000000 )
+		formatString: \$#,0.00\B;(\$#,0.00\B);\$#,0.00\B
+		displayFolder: Report\Display ($B)
+		lineageTag: 987c5674-4526-4700-91d9-2b46961ba41d
+
+	/// Net Obligations on firm-fixed-price actions (pricing code J) / all Net Obligations. KEEPFILTERS: blank when a
+	/// different pricing type is selected. Net-based, so it can fall outside 0-100% where de-obligations dominate.
+	measure 'Firm Fixed Price Share' = DIVIDE ( CALCULATE ( [Net Obligations], KEEPFILTERS ( DimContractType[Pricing Code] = "J" ) ), [Net Obligations] )
+		formatString: 0.0%
+		displayFolder: Mix
+		lineageTag: c747d67d-234c-4da4-8fdf-cba603bc119c
+
+	/// Card text for Single-Offer Rate: "29.3%"; "n/a" when the selection has activity but no competed new award reports
+	/// an offer count (e.g. only modifications, or delivery orders and BPA calls whose offers are reported on the parent
+	/// contract); blank with no activity. Text so the card can show "n/a"; the calculation stays on Single-Offer Rate.
+	measure 'Single-Offer Rate (display)' =
+			VAR Eligible = [Single-Offer Eligible Awards]
+			RETURN
+			    SWITCH (
+			        TRUE (),
+			        ISBLANK ( [Transactions] ), BLANK (),
+			        ISBLANK ( Eligible ) || Eligible = 0, "n/a",
+			        FORMAT ( [Single-Offer Rate], "0.0%" )
+			    )
+		displayFolder: Report
+		lineageTag: 09e9d633-b86b-4779-b76c-616ed4042b75
+
+	/// Card caption for Single-Offer Rate: "2,646 of 9,028 competed new awards"; blank when no competed new award reports offers.
+	measure 'Single-Offer Caption' =
+			VAR Eligible = [Single-Offer Eligible Awards]
+			VAR Single = COALESCE ( [Single-Offer Awards], 0 )
+			RETURN
+			    IF ( Eligible > 0, FORMAT ( Single, "#,0" ) & " of " & FORMAT ( Eligible, "#,0" ) & " competed new awards" )
+		displayFolder: Report
+		lineageTag: 5f1cd469-0b05-4a51-bf1c-04a01288a1a9
+
 	column Placeholder
 		dataType: string
 		isHidden

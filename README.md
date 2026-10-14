@@ -11,8 +11,8 @@ definition is human-readable and version-controlled.
 | Scope | DHS prime contract transactions, action dates 2022-10-01 to 2025-09-30 |
 | Volume | 169,336 transactions · 85,027 awards · 13,522 recipients |
 | Net obligations | **$75.84B** (FY2023 $23.90B · FY2024 $23.60B · FY2025 $28.34B) |
-| Model | Star schema: 1 fact table, 7 dimensions, 71 measures |
-| Status | Executive Overview, Contractor Analysis and Transaction Detail complete; Agency Performance complete (Phases 1 and 2: KPIs, component/office matrix, change-by-component, monthly and competition charts); Contract & Competition planned |
+| Model | Star schema: 1 fact table, 7 dimensions, 76 measures |
+| Status | Executive Overview, Contractor Analysis and Transaction Detail complete; Agency Performance complete (Phases 1 and 2: KPIs, component/office matrix, change-by-component, monthly and competition charts); Contract & Competition complete |
 
 ---
 
@@ -171,6 +171,9 @@ All measures live in `_Measures`, grouped into display folders.
 | | YoY Change Color | Teal when the change vs prior year is ≥ 0, rust when negative; blank without a comparison |
 | Mix › Safe (positive net) | Competed Share (positive net) / Small Business Share (positive net) | Same net-based definitions as the base shares, for office-level matrix rows: **blank when net obligations are ≤ $0 or when the share falls outside 0–100%** (0% and 100% are kept) |
 | | Net Obligations YoY % (positive PY) | Net Obligations YoY %, blank when prior-year net obligations are ≤ $0 or absent |
+| Competition | Not Competed Obligations / ($B) | Net obligations on not-competed actions (extent competed B, C, E, G, NDO). `KEEPFILTERS`, so it intersects with a competition selection (blank when only competed actions are selected); net, so it can be negative (FY2025: $2.54B) |
+| | Firm Fixed Price Share | Net obligations on firm-fixed-price actions (pricing code J) ÷ Net Obligations; `KEEPFILTERS`, so it is blank when another pricing type is selected (FY2025: 77.6%) |
+| Report | Single-Offer Rate (display) / Single-Offer Caption | Card text "29.3%" and caption "2,646 of 9,028 competed new awards"; "n/a" when the selection has activity but no competed new award reports an offer count; blank with no activity |
 | Data Quality | DQ … | Duplicate keys, orphan keys, New Awards definition checks, unknown-member shares, de-obligation rows, date range |
 
 ### KPI definitions and their limits
@@ -242,6 +245,37 @@ by `prepare_data.py`).
   small-business shares; YoY % is blank where prior-year net obligations are ≤ $0.
 - **Context (FY2025):** CBP grew +$4.41B (+76.4%); TSA, the Office of Procurement Operations, FEMA, USCIS, the OIG and
   the Secret Service declined. September 2025 alone accounted for $12.09B of $28.34B.
+
+## Contract & Competition page
+
+How DHS buys: competition, contract vehicle, pricing and small-business set-asides. Fiscal-year and DHS component
+slicers are synced with the other pages.
+
+- **KPIs (FY2025):** competed share 91.0% · not competed $2.54B · single-offer rate 29.3% (2,646 of 9,028 competed new
+  awards) · small business share 33.4% · set-aside share 11.6% · firm-fixed-price share 77.6%.
+- **Charts:** net obligations by extent competed; contract vehicle (award type) and by product/service type, each split
+  into competed (teal), not competed (gold) and not reported (grey); top 10 parent companies by not-competed net
+  obligations; top 5 set-aside types; top 5 pricing types.
+- **Drill-through:** right-click a company in the not-competed chart and choose Transaction Detail. The chart carries
+  Competition Status in its legend, so the detail page keeps the Not Competed restriction (verified: MITRE, all years,
+  $492,675,791 not competed of $512,487,129 total).
+- **Interactions:** selecting a bar in a competition-split chart does not filter the KPI cards. `Competed Share`,
+  `Single-Offer Rate` and `Small Business Share` replace a selection on their own column, so a "Not Competed" selection
+  would otherwise show a meaningless competed share (767%). The charts still cross-filter each other.
+
+**Limitations**
+
+- **Delivery orders report their parent contract's competition.** About 80% of FY2025 competed dollars are on delivery
+  orders; "competed" there describes how the parent contract was awarded, not order-level fair opportunity (not in the
+  extract).
+- **Set-aside is mostly not reported:** blank on 78% of FY2025 net obligations (orders inherit it), so Set-Aside Share
+  understates preference programmes; Small Business Share (business size) is the broader measure.
+- **Single-offer rate** counts competed *new* awards that report an offer count. In FY2025, 4,364 of 7,980 delivery-order
+  and 1,211 of 2,254 BPA-call base actions report none and are excluded; awards that started before FY2023 are not counted.
+- **Dollars vs counts:** purchase orders are 40% of FY2025 new awards (7,319) but 2% of the dollars.
+- **Net amounts:** de-obligations can make a category negative (competitive delivery orders, FY2023: −$0.18B) and a
+  company's not-competed amount can exceed its total when its competed actions net negative.
+- **"Not competed" includes code E** (follow-on to a competed action; $0.02B in FY2025), following the A/D/F/CDO rule.
 
 ## Validation
 

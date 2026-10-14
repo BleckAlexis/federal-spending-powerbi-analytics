@@ -1,0 +1,213 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/page/2.1.0/schema.json",
+  "name": "b8d4f2a6c0e3a5c7e9f1",
+  "displayOption": "FitToPage",
+  "height": 720,
+  "width": 1280,
+  "displayName": "Contract & Competition",
+  "visualInteractions": [
+    {
+      "source": "cc_bar_extent_competed",
+      "target": "cc_kpi_competed_value",
+      "type": "NoFilter"
+    },
+    {
+      "source": "cc_bar_extent_competed",
+      "target": "cc_kpi_not_competed_value",
+      "type": "NoFilter"
+    },
+    {
+      "source": "cc_bar_extent_competed",
+      "target": "cc_kpi_single_offer_value",
+      "type": "NoFilter"
+    },
+    {
+      "source": "cc_bar_extent_competed",
+      "target": "cc_kpi_single_offer_caption",
+      "type": "NoFilter"
+    },
+    {
+      "source": "cc_bar_extent_competed",
+      "target": "cc_kpi_small_business_value",
+      "type": "NoFilter"
+    },
+    {
+      "source": "cc_bar_extent_competed",
+      "target": "cc_kpi_small_business_caption",
+      "type": "NoFilter"
+    },
+    {
+      "source": "cc_bar_extent_competed",
+      "target": "cc_kpi_set_aside_value",
+      "type": "NoFilter"
+    },
+    {
+      "source": "cc_bar_extent_competed",
+      "target": "cc_kpi_ffp_value",
+      "type": "NoFilter"
+    },
+    {
+      "source": "cc_bar_vehicle",
+      "target": "cc_kpi_competed_value",
+      "type": "NoFilter"
+    },
+    {
+      "source": "cc_bar_vehicle",
+      "target": "cc_kpi_not_competed_value",
+      "type": "NoFilter"
+    },
+    {
+      "source": "cc_bar_vehicle",
+      "target": "cc_kpi_single_offer_value",
+      "type": "NoFilter"
+    },
+    {
+      "source": "cc_bar_vehicle",
+      "target": "cc_kpi_single_offer_caption",
+      "type": "NoFilter"
+    },
+    {
+      "source": "cc_bar_vehicle",
+      "target": "cc_kpi_small_business_value",
+      "type": "NoFilter"
+    },
+    {
+      "source": "cc_bar_vehicle",
+      "target": "cc_kpi_small_business_caption",
+      "type": "NoFilter"
+    },
+    {
+      "source": "cc_bar_vehicle",
+      "target": "cc_kpi_set_aside_value",
+      "type": "NoFilter"
+    },
+    {
+      "source": "cc_bar_vehicle",
+      "target": "cc_kpi_ffp_value",
+      "type": "NoFilter"
+    },
+    {
+      "source": "cc_bar_top_noncompeted",
+      "target": "cc_kpi_competed_value",
+      "type": "NoFilter"
+    },
+    {
+      "source": "cc_bar_top_noncompeted",
+      "target": "cc_kpi_not_competed_value",
+      "type": "NoFilter"
+    },
+    {
+      "source": "cc_bar_top_noncompeted",
+      "target": "cc_kpi_single_offer_value",
+      "type": "NoFilter"
+    },
+    {
+      "source": "cc_bar_top_noncompeted",
+      "target": "cc_kpi_single_offer_caption",
+      "type": "NoFilter"
+    },
+    {
+      "source": "cc_bar_top_noncompeted",
+      "target": "cc_kpi_small_business_value",
+      "type": "NoFilter"
+    },
+    {
+      "source": "cc_bar_top_noncompeted",
+      "target": "cc_kpi_small_business_caption",
+      "type": "NoFilter"
+    },
+    {
+      "source": "cc_bar_top_noncompeted",
+      "target": "cc_kpi_set_aside_value",
+      "type": "NoFilter"
+    },
+    {
+      "source": "cc_bar_top_noncompeted",
+      "target": "cc_kpi_ffp_value",
+      "type": "NoFilter"
+    },
+    {
+      "source": "cc_bar_psc_competition",
+      "target": "cc_kpi_competed_value",
+      "type": "NoFilter"
+    },
+    {
+      "source": "cc_bar_psc_competition",
+      "target": "cc_kpi_not_competed_value",
+      "type": "NoFilter"
+    },
+    {
+      "source": "cc_bar_psc_competition",
+      "target": "cc_kpi_single_offer_value",
+      "type": "NoFilter"
+    },
+    {
+      "source": "cc_bar_psc_competition",
+      "target": "cc_kpi_single_offer_caption",
+      "type": "NoFilter"
+    },
+    {
+      "source": "cc_bar_psc_competition",
+      "target": "cc_kpi_small_business_value",
+      "type": "NoFilter"
+    },
+    {
+      "source": "cc_bar_psc_competition",
+      "target": "cc_kpi_small_business_caption",
+      "type": "NoFilter"
+    },
+    {
+      "source": "cc_bar_psc_competition",
+      "target": "cc_kpi_set_aside_value",
+      "type": "NoFilter"
+    },
+    {
+      "source": "cc_bar_psc_competition",
+      "target": "cc_kpi_ffp_value",
+      "type": "NoFilter"
+    }
+  ],
+  "objects": {
+    "background": [
+      {
+        "properties": {
+          "color": {
+            "solid": {
+              "color": {
+                "expr": {
+                  "Literal": {
+                    "Value": "'#F4F6F9'"
+                  }
+                }
+              }
+            }
+          },
+          "transparency": {
+            "expr": {
+              "Literal": {
+                "Value": "0D"
+              }
+            }
+          }
+        }
+      }
+    ],
+    "outspace": [
+      {
+        "properties": {
+          "color": {
+            "solid": {
+              "color": {
+                "expr": {
+                  "Literal": {
+                    "Value": "'#F4F6F9'"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    ]
+  }
+}

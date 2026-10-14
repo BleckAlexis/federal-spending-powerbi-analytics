@@ -47,5 +47,47 @@
         }
       }
     ]
-  }
+  },
+  "visualInteractions": [
+    {
+      "source": "ap_line_monthly",
+      "target": "ap_kpi_net_value",
+      "type": "NoFilter"
+    },
+    {
+      "source": "ap_line_monthly",
+      "target": "ap_kpi_net_caption",
+      "type": "NoFilter"
+    },
+    {
+      "source": "ap_line_monthly",
+      "target": "ap_kpi_yoy_value",
+      "type": "NoFilter"
+    },
+    {
+      "source": "ap_line_monthly",
+      "target": "ap_kpi_year_end_value",
+      "type": "NoFilter"
+    },
+    {
+      "source": "ap_line_monthly",
+      "target": "ap_kpi_deob_rate_value",
+      "type": "NoFilter"
+    },
+    {
+      "source": "ap_line_monthly",
+      "target": "ap_kpi_competed_value",
+      "type": "NoFilter"
+    },
+    {
+      "source": "ap_line_monthly",
+      "target": "ap_kpi_offices_value",
+      "type": "NoFilter"
+    },
+    {
+      "source": "ap_line_monthly",
+      "target": "ap_kpi_offices_caption",
+      "type": "NoFilter"
+    }
+  ]
 }

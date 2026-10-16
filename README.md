@@ -1,20 +1,82 @@
-# Federal Spending Analytics — DHS Contract Obligations (FY2023–FY2025)
+# Federal Spending Analytics: DHS Contract Obligations in Power BI
 
-A Power BI semantic model of U.S. Department of Homeland Security (DHS) prime contract
-transactions for federal fiscal years 2023–2025, built from public
-[USAspending.gov](https://www.usaspending.gov) data. The project is stored as a
-Power BI Project (PBIP) with the semantic model in TMDL and the report in PBIR, so the full model
-definition is human-readable and version-controlled.
+An end-to-end Power BI portfolio project analysing **$75.84 billion** of U.S. Department of Homeland Security (DHS)
+prime contract obligations for federal fiscal years 2023–2025, built from public
+[USAspending.gov](https://www.usaspending.gov) data. It covers the full workflow: a reproducible data-preparation
+script, a Power Query staging layer, a star-schema semantic model with **76 DAX measures**, and a six-page report.
+The project is stored as a Power BI Project (PBIP) with the model in TMDL and the report in PBIR, so every table,
+measure and visual is human-readable and version-controlled.
 
 | | |
 |---|---|
-| Scope | DHS prime contract transactions, action dates 2022-10-01 to 2025-09-30 |
+| Scope | DHS prime contract transactions, action dates 2022-10-01 to 2025-09-30 (FY2023–FY2025) |
 | Volume | 169,336 transactions · 85,027 awards · 13,522 recipients |
 | Net obligations | **$75.84B** (FY2023 $23.90B · FY2024 $23.60B · FY2025 $28.34B) |
 | Model | Star schema: 1 fact table, 7 dimensions, 76 measures |
-| Status | Executive Overview, Contractor Analysis and Transaction Detail complete; Agency Performance complete (Phases 1 and 2: KPIs, component/office matrix, change-by-component, monthly and competition charts); Contract & Competition complete |
+| Report | 4 analytical pages, a drill-through detail page and a report-page tooltip |
+| Format | PBIP · TMDL semantic model · PBIR report |
 
----
+## Contents
+
+- [Screenshots](#screenshots)
+- [Business problem and objectives](#business-problem-and-objectives)
+- [Report pages](#report-pages)
+- [Data source](#data-source)
+- [Technical architecture](#technical-architecture)
+- [Reproduce the project](#reproduce-the-project)
+- [Semantic model](#semantic-model)
+- [Measures and KPIs](#measures-and-kpis)
+- [Page design notes](#page-design-notes)
+- [Validation and quality assurance](#validation-and-quality-assurance)
+- [Interpreting federal obligations and data limitations](#interpreting-federal-obligations-and-data-limitations)
+- [AI assistance](#ai-assistance)
+- [License](#license)
+
+## Screenshots
+
+Captured from Power BI Desktop with the report's default filters.
+
+### Executive Overview
+![Executive Overview page](docs/screenshots/executive-overview.png)
+
+### Agency Performance
+![Agency Performance page](docs/screenshots/agency-performance.png)
+
+### Contractor Analysis
+![Contractor Analysis page](docs/screenshots/contractor-analysis.png)
+
+### Contract & Competition
+![Contract & Competition page](docs/screenshots/contract-competition.png)
+
+## Business problem and objectives
+
+DHS is one of the largest federal buyers of goods and services. Public spending data is detailed but hard to read
+directly: one contract can generate dozens of transactions, de-obligations reduce earlier commitments, and award
+summaries repeat lifetime totals. This project turns the raw transaction file into a model that answers, by fiscal
+year and DHS component:
+
+- **How much is obligated, and how is it changing?** Net, gross and de-obligated amounts, year-over-year change and
+  the September year-end surge.
+- **Which components and offices award the money?** Awarding components and offices, their growth and their mix.
+- **Who receives it?** Parent companies and recipients, vendor concentration, industries, headquarters states and
+  small-business participation.
+- **How is it bought?** Competition, single-offer awards, contract vehicles, pricing types and set-asides.
+
+Design goals: every figure reconciles to values recomputed independently from the source data, de-obligations are
+never hidden, and measures stay correct under any combination of filters.
+
+## Report pages
+
+| Page | Questions it answers | Main content |
+|---|---|---|
+| **Executive Overview** | How much does DHS obligate, and on what? | KPIs (net, gross and de-obligated amounts, new awards, competed and small-business shares) · quarterly gross / de-obligated / net trend · net obligations by DHS component (drill to office) · fiscal-year summary table · obligations by product, service or R&D (drill to product/service code) |
+| **Agency Performance** | Which awarding components grew or declined? | Single-select comparison year · KPIs including change vs prior year and year-end (September) share · component → awarding-office matrix with data bars · change vs prior year by component · monthly comparison with the prior year · competition vs small-business scatter |
+| **Contractor Analysis** | Who receives DHS contract dollars? | KPIs (recipients, top-10 parent share, small-business share, average per recipient, new awards, net obligations) · top 10 parent companies (drill to recipients) · ranked recipient table · small vs other-than-small business by year · top industries · top headquarters states · recipient search |
+| **Contract & Competition** | How competitively does DHS buy? | KPIs (competed share, not-competed amount, single-offer rate, small-business and set-aside shares, firm-fixed-price share) · obligations by extent competed · contract vehicle and product/service type split by competition · top 10 parent companies by not-competed obligations · top set-aside and pricing types |
+
+Supporting pages: **Transaction Detail** (hidden drill-through from any recipient or parent company, listing each
+contract action with a link to USAspending) and **Avg per Recipient Tooltip** (report-page tooltip). Fiscal-year and
+DHS component slicers are synced across pages; the Agency Performance comparison year is deliberately separate.
 
 ## Data source
 
@@ -33,7 +95,28 @@ definition is human-readable and version-controlled.
 Raw and processed data files are **not** in this repository (see `.gitignore`); follow the setup steps
 below to recreate them.
 
-## Repository structure
+## Technical architecture
+
+```mermaid
+flowchart LR
+    A["USAspending.gov<br/>prime contract transactions (CSV)"] --> B["scripts/prepare_data.py<br/>combine, de-duplicate, 44 columns"]
+    B --> C["Power Query<br/>staging query + fnLatestByKey"]
+    C --> D["Star schema<br/>1 fact + 7 dimensions"]
+    D --> E["76 DAX measures"]
+    E --> F["PBIR report<br/>6 pages"]
+```
+
+- **Data preparation:** a standard-library Python script combines the raw download files, removes duplicate
+  transactions and keeps the 44 columns the model uses.
+- **Power Query:** one staging query reads the processed CSV through the `DataFolderPath` parameter; a reusable
+  function (`fnLatestByKey`) builds each conformed dimension with one row per key and an explicit UNKNOWN member.
+- **Semantic model:** a transaction-grain fact table, seven dimensions with single-direction one-to-many
+  relationships, a DAX date table on the federal fiscal calendar, and 76 measures organised in display folders.
+- **Report:** PBIR page and visual definitions with a custom theme, synced slicers, drill-through, a report-page
+  tooltip and explicit cross-filter rules where a selection would otherwise distort a KPI.
+- **Source control:** PBIP stores the model (TMDL) and report (PBIR) as text, so every change is reviewable in Git.
+
+### Repository structure
 
 ```
 Fed-Spend-Analytics.pbip                 Power BI project entry point
@@ -43,11 +126,13 @@ Fed-Spend-Analytics.SemanticModel/       Semantic model (TMDL)
   definition/relationships.tmdl          7 star-schema relationships
 Fed-Spend-Analytics.Report/              Report (PBIR)
 scripts/prepare_data.py                  Raw CSV -> slim processed CSV (standard library only)
+docs/screenshots/                        Report page screenshots used in this README
+LICENSE                                  MIT License (scope: see License)
 Data/Raw/                                USAspending downloads        (git-ignored)
 Data/Processed/                          contract_transactions.csv    (git-ignored)
 ```
 
-## Setup
+## Reproduce the project
 
 Requirements: Power BI Desktop (with PBIP / TMDL support) and Python 3.9+ (no packages needed).
 
@@ -64,7 +149,7 @@ Requirements: Power BI Desktop (with PBIP / TMDL support) and Python 3.9+ (no pa
    **Transform data → Manage parameters** and set `DataFolderPath` to the full path of your
    `Data\Processed\` folder, including the trailing backslash.
 4. **Refresh** (Home → Refresh).
-5. **Validate** with the query in [Validation](#validation).
+5. **Validate** with the query in [Validation and quality assurance](#validation-and-quality-assurance).
 
 To update the data later, replace the files in `Data/Raw/`, rerun step 2 and refresh.
 
@@ -223,7 +308,9 @@ All measures live in `_Measures`, grouped into display folders.
 - **HQ State** is the recipient's registered headquarters, not the place of performance. 161 UEIs (about
   $0.15B) have no US state on record and appear as "Not reported / non-US".
 
-### Contractor Analysis interactions
+## Page design notes
+
+### Contractor Analysis
 
 - **Business-size chart → Small Business Share card.** Selecting a segment of *Small vs. other-than-small business*
   does not filter the Small Business Share card or its caption. `Small Business Share` and `Small Business Recipients`
@@ -233,7 +320,7 @@ All measures live in `_Measures`, grouped into display folders.
 - The chart's tooltip shows recipient UEIs only; a small-business share evaluated inside a single business-size
   segment would always read 100% (small) or small ÷ other-than-small, so it is not shown there.
 
-## Agency Performance page
+### Agency Performance
 
 Shows DHS contract obligations by **awarding** agency: the DHS component and office that signed each contract
 action. It is **not** a funding-agency view; funding agency is not in the model (the funding columns are not exported
@@ -256,7 +343,7 @@ by `prepare_data.py`).
 - **Context (FY2025):** CBP grew +$4.41B (+76.4%); TSA, the Office of Procurement Operations, FEMA, USCIS, the OIG and
   the Secret Service declined. September 2025 alone accounted for $12.09B of $28.34B.
 
-## Contract & Competition page
+### Contract & Competition
 
 How DHS buys: competition, contract vehicle, pricing and small-business set-asides. Fiscal-year and DHS component
 slicers are synced with the other pages.
@@ -287,7 +374,18 @@ slicers are synced with the other pages.
   company's not-competed amount can exceed its total when its competed actions net negative.
 - **"Not competed" includes code E** (follow-on to a competed action; $0.02B in FY2025), following the A/D/F/CDO rule.
 
-## Validation
+## Validation and quality assurance
+
+- **Independent reference values.** The figures below were recomputed directly from the source CSV with Python,
+  independently of Power BI, and the model reproduces them exactly.
+- **Regression testing.** Each model or report change was checked with read-only DAX queries against the loaded
+  model: a 189-value baseline, page-specific suites (for example 430 checks for the Contract & Competition page) and
+  re-runs of every earlier suite, so later changes could not silently alter earlier results.
+- **Static checks.** All 168 report definition files were validated against Microsoft's published PBIR JSON schemas,
+  every field reference was resolved against the model, and page layouts were checked for overlaps.
+- The validation tooling itself is not published because it contains machine-specific paths; the DAX query at the end
+  of this section reproduces the core reference figures.
+
 
 Reference values computed independently from the raw USAspending CSV.
 
@@ -352,7 +450,16 @@ ROW (
 )
 ```
 
-## Data limitations
+## Interpreting federal obligations and data limitations
+
+- **Obligations are not spending.** An obligation is a legally binding commitment to pay; outlays (payments) can
+  follow months or years later and are not in this dataset.
+- **Net amounts.** De-obligations (−$6.79B in total) reduce earlier commitments and are kept with their sign, so a
+  component, company or category can show a negative net amount in a given slice.
+- **Awarding, not funding, agency.** All analysis is by the DHS component that signed each action; another agency may
+  have funded it.
+- **Transaction timing.** Amounts fall in the fiscal year of each action, not the year the contract was first awarded;
+  awards signed before FY2023 contribute only their in-period modifications.
 
 - USAspending data is agency-reported and subject to the data-quality issues documented by GAO and the
   Congressional Research Service; figures can change as agencies correct records. Results reflect the
@@ -360,3 +467,21 @@ ROW (
 - Offer counts for delivery orders and BPA calls are recorded on the parent contract and are not in this
   extract.
 - Funding agency is not yet modelled; all analysis is by awarding agency.
+## AI assistance
+
+This project was developed with AI assistance. **Claude (Anthropic) was used as a coding assistant** for portions of
+the data model and Power Query, the DAX measures, the report definitions (PBIR), the validation scripts and this
+documentation. All changes were reviewed and approved by the author, and results were validated against figures
+recomputed independently from the source data (see [Validation and quality assurance](#validation-and-quality-assurance)).
+The author is responsible for the analysis and any remaining errors.
+
+## License
+
+Original code, model and report definitions, and documentation in this repository are released under the
+[MIT License](LICENSE). The license does not cover:
+
+- **USAspending.gov data**, which is U.S. federal government data published by the Department of the Treasury.
+  It is not included in this repository; see [USAspending.gov](https://www.usaspending.gov) for its terms.
+- **Microsoft Power BI**, its file formats and JSON schemas, and the Power BI base theme file
+  `Fed-Spend-Analytics.Report/StaticResources/SharedResources/BaseThemes/CY26SU05.json`, which Power BI Desktop
+  generates from its built-in theme.

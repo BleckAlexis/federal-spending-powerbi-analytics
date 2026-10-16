@@ -1,5 +1,9 @@
 # Federal Spending Analytics: DHS Contract Obligations in Power BI
 
+**End-to-end Power BI solution: from raw government CSV files to a validated star-schema model, 76 DAX measures and a four-page analytical report.**
+
+*Independent portfolio project built on public USAspending.gov data; not affiliated with or commissioned by DHS or USAspending.gov.*
+
 An end-to-end Power BI portfolio project analysing **$75.84 billion** of U.S. Department of Homeland Security (DHS)
 prime contract obligations for federal fiscal years 2023–2025, built from public
 [USAspending.gov](https://www.usaspending.gov) data. It covers the full workflow: a reproducible data-preparation
@@ -7,20 +11,63 @@ script, a Power Query staging layer, a star-schema semantic model with **76 DAX 
 The project is stored as a Power BI Project (PBIP) with the model in TMDL and the report in PBIR, so every table,
 measure and visual is human-readable and version-controlled.
 
-| | |
+## Project highlights
+
+- **$75.84B** in DHS prime contract obligations analysed (FY2023 $23.90B · FY2024 $23.60B · FY2025 $28.34B)
+- **169,336** contract transactions · 85,027 awards · 13,522 recipients (action dates 2022-10-01 to 2025-09-30)
+- **Star-schema semantic model**: 1 transaction-grain fact table and 7 dimensions with single-direction relationships
+- **76 DAX measures**, including fiscal-year time intelligence, net-based shares and filter-safe display measures
+- **4 analytical dashboard pages**, plus a drill-through transaction detail page and a report-page tooltip
+- **Every reported figure reconciled** to values recomputed independently from the source data
+- **Source-controlled Power BI Project**: PBIP with a TMDL semantic model and PBIR report
+
+## Dashboard gallery
+
+<table>
+  <tr>
+    <td align="center"><a href="docs/screenshots/executive-overview.png"><img src="docs/screenshots/executive-overview.png" width="420" alt="Executive Overview dashboard"></a><br><b>Executive Overview</b><br>Spending trend, components, what was bought</td>
+    <td align="center"><a href="docs/screenshots/agency-performance.png"><img src="docs/screenshots/agency-performance.png" width="420" alt="Agency Performance dashboard"></a><br><b>Agency Performance</b><br>Year-over-year change by component and office</td>
+  </tr>
+  <tr>
+    <td align="center"><a href="docs/screenshots/contractor-analysis.png"><img src="docs/screenshots/contractor-analysis.png" width="420" alt="Contractor Analysis dashboard"></a><br><b>Contractor Analysis</b><br>Recipients, vendor concentration, small business</td>
+    <td align="center"><a href="docs/screenshots/contract-competition.png"><img src="docs/screenshots/contract-competition.png" width="420" alt="Contract &amp; Competition dashboard"></a><br><b>Contract &amp; Competition</b><br>Competition, single-offer awards, pricing, set-asides</td>
+  </tr>
+</table>
+
+Page details: [Report pages](#report-pages) · Full-size images: [Screenshots](#screenshots)
+
+## Business value
+
+The report is designed for procurement analysts, program managers and oversight or budget teams who need reliable answers from detailed federal spending data:
+
+- **Monitor spending trends:** net, gross and de-obligated amounts by fiscal year, quarter and month, including the September year-end concentration (42.7% of FY2025 net obligations).
+- **Compare agency performance:** year-over-year change by DHS component and awarding office, with a single comparison year so changes are never mixed across years.
+- **Analyse contractor concentration:** the top 10 parent companies' share of net obligations (22.7% over FY2023–FY2025), ranked recipients and drill-through to individual contract actions.
+- **Evaluate competition and small-business participation:** competed share (88.5%), single-offer rate among competed new awards (34.0%) and small-business share (37.4%), all over FY2023–FY2025, plus set-aside types and pricing arrangements.
+
+Every figure reconciles to the source data, de-obligations are never hidden, and the measures stay correct under any combination of filters. The same approach applies to other transaction-level spending, procurement or financial data.
+
+## Skills demonstrated
+
+| Area | What this project shows |
 |---|---|
-| Scope | DHS prime contract transactions, action dates 2022-10-01 to 2025-09-30 (FY2023–FY2025) |
-| Volume | 169,336 transactions · 85,027 awards · 13,522 recipients |
-| Net obligations | **$75.84B** (FY2023 $23.90B · FY2024 $23.60B · FY2025 $28.34B) |
-| Model | Star schema: 1 fact table, 7 dimensions, 76 measures |
-| Report | 4 analytical pages, a drill-through detail page and a report-page tooltip |
-| Format | PBIP · TMDL semantic model · PBIR report |
+| **Power BI report design** | Four analytical pages, synced slicers, drill-through, report-page tooltip, explicit cross-filter rules, custom theme |
+| **DAX** | 76 measures: fiscal time intelligence, YoY with blank-safe logic, `KEEPFILTERS`, `RANKX` over `ALLSELECTED`, text display measures |
+| **Power Query (M)** | Parameterised CSV source, staging query, reusable function building conformed dimensions with UNKNOWN members |
+| **Semantic modelling** | Transaction-grain star schema, junk dimension, fiscal date table, one-to-many single-direction relationships |
+| **PBIP / TMDL / PBIR** | Model and report stored as text and version-controlled in Git |
+| **Python data preparation** | Standard-library script that combines downloads, removes duplicates and selects the model's columns |
+| **Data validation** | Independent recomputation from source, DAX regression queries, schema and field-reference checks |
 
 ## Contents
 
-- [Screenshots](#screenshots)
+- [Project highlights](#project-highlights)
+- [Dashboard gallery](#dashboard-gallery)
+- [Business value](#business-value)
+- [Skills demonstrated](#skills-demonstrated)
 - [Business problem and objectives](#business-problem-and-objectives)
 - [Report pages](#report-pages)
+- [Screenshots](#screenshots)
 - [Data source](#data-source)
 - [Technical architecture](#technical-architecture)
 - [Reproduce the project](#reproduce-the-project)
@@ -31,22 +78,6 @@ measure and visual is human-readable and version-controlled.
 - [Interpreting federal obligations and data limitations](#interpreting-federal-obligations-and-data-limitations)
 - [AI assistance](#ai-assistance)
 - [License](#license)
-
-## Screenshots
-
-Captured from Power BI Desktop with the report's default filters.
-
-### Executive Overview
-![Executive Overview page](docs/screenshots/executive-overview.png)
-
-### Agency Performance
-![Agency Performance page](docs/screenshots/agency-performance.png)
-
-### Contractor Analysis
-![Contractor Analysis page](docs/screenshots/contractor-analysis.png)
-
-### Contract & Competition
-![Contract & Competition page](docs/screenshots/contract-competition.png)
 
 ## Business problem and objectives
 
@@ -77,6 +108,22 @@ never hidden, and measures stay correct under any combination of filters.
 Supporting pages: **Transaction Detail** (hidden drill-through from any recipient or parent company, listing each
 contract action with a link to USAspending) and **Avg per Recipient Tooltip** (report-page tooltip). Fiscal-year and
 DHS component slicers are synced across pages; the Agency Performance comparison year is deliberately separate.
+
+## Screenshots
+
+Captured from Power BI Desktop with the report's default filters.
+
+### Executive Overview
+![Executive Overview page](docs/screenshots/executive-overview.png)
+
+### Agency Performance
+![Agency Performance page](docs/screenshots/agency-performance.png)
+
+### Contractor Analysis
+![Contractor Analysis page](docs/screenshots/contractor-analysis.png)
+
+### Contract & Competition
+![Contract & Competition page](docs/screenshots/contract-competition.png)
 
 ## Data source
 
